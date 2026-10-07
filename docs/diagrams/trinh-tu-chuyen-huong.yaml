@@ -1,0 +1,93 @@
+id: "trinh-tu-chuyen-huong"
+type: "sequence"
+title: "Kiểu chuyển hướng (VNPay, MoMo, OnePAY)"
+tab: "business"
+sources:
+  - "src/hub.js"
+explain:
+  meaning: "Sơ đồ cho thấy ai gọi ai trong một lần thanh toán kiểu chuyển hướng: khách được đưa sang trang của cổng để trả tiền, rồi cổng báo kết quả về Hub. Đơn chỉ được ghi PAID dựa trên thông báo đã kiểm chữ ký của cổng hoặc kết quả Hub tự hỏi lại cổng; việc khách quay về cửa hàng không làm đơn PAID."
+  read:
+    - "Thời gian chạy từ trên xuống; mỗi cột là một bên."
+    - "Mũi tên liền là lời gọi, mũi tên đứt là câu trả lời."
+    - "Mũi tên Hub tự gọi mình là việc Hub làm bên trong."
+  details:
+    - term: "Cửa hàng"
+      text: "Gọi Hub để tạo thanh toán, rồi tự đưa khách tới URL nhận được."
+    - term: "Hub"
+      text: "Nhờ adapter tạo URL thanh toán, trả URL cho cửa hàng, và về sau nhận thông báo của cổng. Theo mã hiện tại chỉ MoMo phải gọi cổng lúc tạo; VNPay và OnePAY dựng URL có chữ ký ngay tại Hub."
+    - term: "Cổng"
+      text: "VNPay, MoMo hoặc OnePAY: nhận tiền của khách và gọi thông báo (IPN) về Hub."
+    - term: "Khách"
+      text: "Trả tiền trên trang của cổng; Hub không thấy bước này."
+    - term: "kiểm chữ ký, ghi PAID"
+      text: "Hub chỉ ghi nhận trả tiền sau khi kiểm chữ ký của thông báo; xem sơ đồ 2 và 3."
+  pitfalls:
+    - "Thông báo có thể mất; khi đó Hub tự hỏi lại cổng (sơ đồ 5) và kết quả đó cũng làm đơn PAID."
+    - "Mũi tên \"tạo\" và \"URL thanh toán\" giữa Hub và Cổng không phải lúc nào cũng là một lời gọi qua mạng (xem mục Hub)."
+    - "Trình tự này mới chạy với cổng mô phỏng, chưa kiểm với cổng thật."
+  basis: "cffd30635c4e68c6"
+autonumber: false
+participants:
+  - id: "S"
+    label: "Cửa hàng"
+    actor: false
+  - id: "H"
+    label: "Hub"
+    actor: false
+  - id: "G"
+    label: "Cổng"
+    actor: false
+  - id: "K"
+    label: "Khách"
+    actor: false
+steps:
+  - message:
+      from: "S"
+      to: "H"
+      text: "tạo thanh toán"
+      reply: false
+  - message:
+      from: "H"
+      to: "G"
+      text: "tạo (adapter)"
+      reply: false
+  - message:
+      from: "G"
+      to: "H"
+      text: "URL thanh toán"
+      reply: true
+  - message:
+      from: "H"
+      to: "S"
+      text: "URL"
+      reply: true
+  - message:
+      from: "S"
+      to: "K"
+      text: "chuyển tới URL"
+      reply: false
+  - message:
+      from: "K"
+      to: "G"
+      text: "trả tiền"
+      reply: false
+  - message:
+      from: "G"
+      to: "H"
+      text: "IPN"
+      reply: false
+  - message:
+      from: "H"
+      to: "H"
+      text: "kiểm chữ ký, ghi PAID"
+      reply: false
+  - message:
+      from: "H"
+      to: "G"
+      text: "ack"
+      reply: true
+  - note:
+      over:
+        - "H"
+        - "G"
+      text: "IPN mất thì Hub tự hỏi lại cổng"

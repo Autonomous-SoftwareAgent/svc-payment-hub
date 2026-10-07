@@ -1,0 +1,4 @@
+# Luôn dùng LF: script .sh và Dockerfile chạy trên Linux không được dính CRLF
+* text=auto eol=lf
+*.ps1 text eol=crlf
+*.png binary

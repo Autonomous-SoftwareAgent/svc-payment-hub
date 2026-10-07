@@ -1,0 +1,67 @@
+{
+  "port": 8080,
+  "host": "0.0.0.0",
+  "publicBaseUrl": "http://hub:8080",
+  "apiToken": "${HUB_API_TOKEN}",
+  "databaseUrl": "${HUB_DATABASE_URL}",
+  "schedulerSeconds": 5,
+  "hub": {
+    "paymentTtlSeconds": 1800,
+    "failover": {
+      "enabled": true,
+      "maxAttempts": 3
+    },
+    "reconcile": {
+      "firstAfterSeconds": 5,
+      "backoffSeconds": [
+        5,
+        10,
+        30
+      ],
+      "maxAgeSeconds": 86400
+    },
+    "gateways": [
+      {
+        "id": "momo",
+        "priority": 1
+      }
+    ]
+  },
+  "adapters": {
+    "momo": {
+      "partnerCode": "MOMOLOCAL01",
+      "accessKey": "local-access-key-not-real",
+      "secretKey": "${MOMO_SECRET_KEY}",
+      "baseUrl": "http://momo-sim:8081"
+    }
+  },
+  "connectors": {
+    "kafka": {
+      "brokers": [
+        "redpanda:9092"
+      ],
+      "clientId": "payment-hub-local"
+    },
+    "out": [
+      {
+        "id": "bus",
+        "sink": "kafka",
+        "topic": "payment.events.v1",
+        "types": "*",
+        "shops": "*"
+      }
+    ],
+    "in": [
+      {
+        "id": "commands",
+        "source": "kafka",
+        "topic": "payment.commands.v1",
+        "groupId": "payment-hub",
+        "principal": {
+          "role": "admin"
+        },
+        "dlqTopic": "payment.commands.v1.dlq"
+      }
+    ]
+  }
+}

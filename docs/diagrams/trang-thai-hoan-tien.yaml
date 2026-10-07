@@ -1,0 +1,49 @@
+id: "trang-thai-hoan-tien"
+type: "state"
+title: "Hoàn tiền (refund)"
+tab: "architecture"
+sources:
+  - "src/hub.js"
+explain:
+  meaning: "Sơ đồ mô tả vòng đời của một yêu cầu hoàn tiền. Có hai đường: cổng có API hoàn thì Hub theo dõi tới kết quả, cổng không có thì chờ người vận hành xác nhận đã hoàn tay."
+  read:
+    - "Chấm đen là điểm bắt đầu; mũi tên có nhãn nói rõ khi nào đi đường đó."
+    - "Nhánh đi qua MANUAL_REQUIRED là đường thủ công."
+  details:
+    - term: "REQUESTED"
+      text: "Yêu cầu hoàn đã được ghi, trước khi gọi ra cổng. Lời gọi mất phản hồi thì yêu cầu cũng ở lại trạng thái này, chờ đối soát hỏi lại."
+    - term: "PROCESSING"
+      text: "Cổng đã nhận yêu cầu hoàn, chưa có kết quả cuối."
+    - term: "SUCCEEDED"
+      text: "Tiền đã được hoàn, do cổng xác nhận hoặc do người vận hành xác nhận."
+    - term: "FAILED"
+      text: "Cổng báo hoàn thất bại (kể cả khi báo muộn), hoặc Hub chưa gửi được lời gọi đi nên chắc chắn chưa hoàn và cho phép gọi lại."
+    - term: "MANUAL_REQUIRED"
+      text: "Cổng không có API hoàn, hoặc cổng trả lời phải hoàn tay: cần người hoàn rồi xác nhận."
+  pitfalls:
+    - "REQUESTED chưa có nghĩa là khách đã nhận lại tiền."
+    - "API hoàn tiền của các cổng thật chưa được kiểm."
+  basis: "678a45286645ce05"
+states:
+  - id: "REQUESTED"
+  - id: "PROCESSING"
+  - id: "SUCCEEDED"
+  - id: "FAILED"
+  - id: "MANUAL_REQUIRED"
+start:
+  - "REQUESTED"
+end: []
+transitions:
+  - from: "REQUESTED"
+    to: "PROCESSING"
+  - from: "PROCESSING"
+    to: "SUCCEEDED"
+  - from: "PROCESSING"
+    to: "FAILED"
+    label: "thất bại muộn"
+  - from: "REQUESTED"
+    to: "MANUAL_REQUIRED"
+    label: "cổng không có API hoàn"
+  - from: "MANUAL_REQUIRED"
+    to: "SUCCEEDED"
+    label: "người vận hành xác nhận"

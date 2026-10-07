@@ -1,0 +1,19 @@
+{
+  "name": "payment-hub",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Payment Hub: điều phối nhiều cổng thanh toán (VNPay, MoMo, OnePAY, SePay) qua adapter cô lập",
+  "engines": {
+    "node": ">=24"
+  },
+  "dependencies": {
+    "kafkajs": "2.2.4",
+    "pg": "8.23.1"
+  },
+  "scripts": {
+    "test": "node --test --test-timeout=60000 \"test/hub/*.test.js\" \"test/e2e/*.test.js\" \"test/momo/*.test.js\" \"test/onepay/*.test.js\" \"test/vnpay/*.test.js\" \"test/sepay/*.test.js\" \"test/stripe/*.test.js\" \"test/paypal/*.test.js\"",
+    "start": "node src/main.js",
+    "check-config": "node src/main.js --check-config",
+    "docs": "node ../../.claude/plugin/mcp/cli.js check"
+  }
+}

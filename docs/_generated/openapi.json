@@ -1,0 +1,2877 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Payment Hub API",
+    "version": "0.0.0",
+    "description": "Điều phối nhiều cổng thanh toán. Sinh tự động từ danh mục thao tác và sự kiện của Hub (không sửa tay)."
+  },
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "paths": {
+    "/payments": {
+      "post": {
+        "operationId": "createPayment",
+        "summary": "Tạo thanh toán cho một đơn (idempotent theo cửa hàng + orderId)",
+        "x-roles": [
+          "shop",
+          "admin"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "orderId",
+                  "amount",
+                  "returnUrl"
+                ],
+                "properties": {
+                  "orderId": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "amount": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Số nguyên theo đơn vị nhỏ nhất của currency (VND: đồng; USD: cent)"
+                  },
+                  "returnUrl": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "orderInfo": {
+                    "type": "string"
+                  },
+                  "product": {
+                    "type": "string"
+                  },
+                  "method": {
+                    "type": "string",
+                    "enum": [
+                      "wallet",
+                      "qr",
+                      "bank_transfer",
+                      "virtual_account",
+                      "card_domestic",
+                      "card_international"
+                    ],
+                    "description": "Phương án thanh toán chuẩn khách yêu cầu; bỏ trống = cổng nào cũng được"
+                  },
+                  "clientIp": {
+                    "type": "string"
+                  },
+                  "currency": {
+                    "type": "string",
+                    "description": "ISO 4217; vắng = VND"
+                  },
+                  "expiresAt": {
+                    "type": "integer"
+                  },
+                  "extra": {
+                    "type": "object",
+                    "description": "Tham số riêng của từng cổng: {idCổng: {khóa: giá trị}}, đúng extraSchema của cổng đó; Hub chỉ chuyển tiếp"
+                  },
+                  "shopId": {
+                    "type": "string",
+                    "description": "Chỉ token quản trị dùng được; token cửa hàng luôn lấy shopId từ chính token"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Thành công",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatePaymentResult"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Thành công",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatePaymentResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Mã lỗi: invalid_input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Mã lỗi: unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Mã lỗi: order_conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Quá giới hạn tốc độ (rate_limited); có header Retry-After",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Mã lỗi: no_gateway_available",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/payments/{paymentId}": {
+      "get": {
+        "operationId": "getPayment",
+        "summary": "Xem một payment cùng các attempt, hoàn tiền và anomaly của nó",
+        "x-roles": [
+          "shop",
+          "admin"
+        ],
+        "parameters": [
+          {
+            "name": "paymentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Thành công",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentDetail"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Mã lỗi: invalid_input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Mã lỗi: unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Mã lỗi: not_found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Quá giới hạn tốc độ (rate_limited); có header Retry-After",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Hub quá tải (overloaded); có header Retry-After",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/payments/{paymentId}/attempts": {
+      "post": {
+        "operationId": "createAttempt",
+        "summary": "Tạo attempt mới cho payment đang mở (khách thử lại hoặc chuyển cổng)",
+        "x-roles": [
+          "shop",
+          "admin"
+        ],
+        "parameters": [
+          {
+            "name": "paymentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "description": "customer_retry (mặc định) hoặc failover"
+                  },
+                  "cancelLive": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Thành công",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "attempt",
+                    "payment"
+                  ],
+                  "properties": {
+                    "attempt": {
+                      "$ref": "#/components/schemas/Attempt"
+                    },
+                    "payment": {
+                      "$ref": "#/components/schemas/Payment"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Mã lỗi: invalid_input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Mã lỗi: unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Mã lỗi: not_found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Mã lỗi: attempt_still_live, payment_not_open, max_attempts, failover_disabled, failover_not_applicable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Quá giới hạn tốc độ (rate_limited); có header Retry-After",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Mã lỗi: no_gateway_available",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/payments/{paymentId}/capture": {
+      "post": {
+        "operationId": "capturePayment",
+        "summary": "Thu khoản tiền cổng đang giữ (authorize) của một payment; chỉ thu đủ số đã giữ",
+        "x-roles": [
+          "shop",
+          "admin"
+        ],
+        "parameters": [
+          {
+            "name": "paymentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Thành công",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "outcome",
+                    "payment",
+                    "attempt"
+                  ],
+                  "properties": {
+                    "outcome": {
+                      "type": "string",
+                      "enum": [
+                        "captured",
+                        "unknown"
+                      ],
+                      "description": "unknown = cổng mất phản hồi, có thể đã thu: Hub đối soát, xem lại sau (không thu lại ngay)"
+                    },
+                    "payment": {
+                      "$ref": "#/components/schemas/Payment"
+                    },
+                    "attempt": {
+                      "$ref": "#/components/schemas/Attempt"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Thành công",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "outcome",
+                    "payment",
+                    "attempt"
+                  ],
+                  "properties": {
+                    "outcome": {
+                      "type": "string",
+                      "enum": [
+                        "captured",
+                        "unknown"
+                      ],
+                      "description": "unknown = cổng mất phản hồi, có thể đã thu: Hub đối soát, xem lại sau (không thu lại ngay)"
+                    },
+                    "payment": {
+                      "$ref": "#/components/schemas/Payment"
+                    },
+                    "attempt": {
+                      "$ref": "#/components/schemas/Attempt"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Mã lỗi: invalid_input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Mã lỗi: unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Mã lỗi: not_found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Mã lỗi: payment_not_open, invalid_state, op_in_progress, capture_rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Mã lỗi: not_supported",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Quá giới hạn tốc độ (rate_limited); có header Retry-After",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Mã lỗi: gateway_unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/payments/{paymentId}/void": {
+      "post": {
+        "operationId": "voidPayment",
+        "summary": "Nhả khoản tiền cổng đang giữ (void) của một payment",
+        "x-roles": [
+          "shop",
+          "admin"
+        ],
+        "parameters": [
+          {
+            "name": "paymentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "attemptId": {
+                    "type": "string",
+                    "description": "Chỉ cần khi nhiều attempt cùng giữ tiền"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Thành công",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "outcome",
+                    "payment",
+                    "attempt"
+                  ],
+                  "properties": {
+                    "outcome": {
+                      "type": "string",
+                      "enum": [
+                        "voided",
+                        "unknown"
+                      ],
+                      "description": "unknown = cổng mất phản hồi, có thể đã nhả: Hub đối soát"
+                    },
+                    "payment": {
+                      "$ref": "#/components/schemas/Payment"
+                    },
+                    "attempt": {
+                      "$ref": "#/components/schemas/Attempt"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Thành công",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "outcome",
+                    "payment",
+                    "attempt"
+                  ],
+                  "properties": {
+                    "outcome": {
+                      "type": "string",
+                      "enum": [
+                        "voided",
+                        "unknown"
+                      ],
+                      "description": "unknown = cổng mất phản hồi, có thể đã nhả: Hub đối soát"
+                    },
+                    "payment": {
+                      "$ref": "#/components/schemas/Payment"
+                    },
+                    "attempt": {
+                      "$ref": "#/components/schemas/Attempt"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Mã lỗi: invalid_input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Mã lỗi: unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Mã lỗi: not_found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Mã lỗi: invalid_state, op_in_progress, void_rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Mã lỗi: not_supported",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Quá giới hạn tốc độ (rate_limited); có header Retry-After",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Mã lỗi: gateway_unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/refunds": {
+      "post": {
+        "operationId": "createRefund",
+        "summary": "Yêu cầu hoàn tiền một attempt đã nhận tiền",
+        "x-roles": [
+          "shop",
+          "admin"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "attemptId"
+                ],
+                "properties": {
+                  "attemptId": {
+                    "type": "string"
+                  },
+                  "amount": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Bỏ trống = hoàn phần còn lại"
+                  },
+                  "reason": {
+                    "type": "string"
+                  },
+                  "force": {
+                    "type": "boolean",
+                    "description": "Chỉ quản trị: hoàn khoản nằm trong cảnh báo mà cổng chưa xác nhận tiền đã về"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Thành công",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refund"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Mã lỗi: invalid_input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Mã lỗi: unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Mã lỗi: forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Mã lỗi: not_found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Mã lỗi: nothing_to_refund, refund_limit, not_confirmed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Mã lỗi: invalid_refund_amount",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Quá giới hạn tốc độ (rate_limited); có header Retry-After",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Hub quá tải (overloaded); có header Retry-After",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/refunds/{refundId}/done": {
+      "post": {
+        "operationId": "markRefundDone",
+        "summary": "Xác nhận hoàn tiền thủ công đã làm xong",
+        "x-roles": [
+          "admin"
+        ],
+        "parameters": [
+          {
+            "name": "refundId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Thành công",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refund"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Mã lỗi: invalid_input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Mã lỗi: unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Mã lỗi: forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Mã lỗi: not_found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Mã lỗi: invalid_state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Quá giới hạn tốc độ (rate_limited); có header Retry-After",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Hub quá tải (overloaded); có header Retry-After",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/anomalies": {
+      "get": {
+        "operationId": "listAnomalies",
+        "summary": "Danh sách tiền bất thường",
+        "x-roles": [
+          "admin"
+        ],
+        "parameters": [
+          {
+            "name": "type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Thành công",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "anomalies"
+                  ],
+                  "properties": {
+                    "anomalies": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Anomaly"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Mã lỗi: invalid_input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Mã lỗi: unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Mã lỗi: forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Quá giới hạn tốc độ (rate_limited); có header Retry-After",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Hub quá tải (overloaded); có header Retry-After",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/anomalies/{anomalyId}/resolve": {
+      "post": {
+        "operationId": "resolveAnomaly",
+        "summary": "Phân xử một anomaly (hoàn tiền, áp vào payment, hoặc bỏ qua)",
+        "x-roles": [
+          "admin"
+        ],
+        "parameters": [
+          {
+            "name": "anomalyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "action"
+                ],
+                "properties": {
+                  "action": {
+                    "type": "string",
+                    "description": "refund | apply | ignore"
+                  },
+                  "note": {
+                    "type": "string"
+                  },
+                  "force": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Thành công",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Anomaly"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Mã lỗi: invalid_input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Mã lỗi: unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Mã lỗi: forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Mã lỗi: not_found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Mã lỗi: invalid_state, not_confirmed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Quá giới hạn tốc độ (rate_limited); có header Retry-After",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Hub quá tải (overloaded); có header Retry-After",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/reconcile": {
+      "post": {
+        "operationId": "reconcile",
+        "summary": "Chạy đối soát ngay",
+        "x-roles": [
+          "admin"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Thành công",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Mã lỗi: invalid_input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Mã lỗi: unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Mã lỗi: forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Quá giới hạn tốc độ (rate_limited); có header Retry-After",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Hub quá tải (overloaded); có header Retry-After",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/gateways": {
+      "get": {
+        "operationId": "listGateways",
+        "summary": "Tình trạng từng cổng (breaker, số lời gọi đang chạy)",
+        "x-roles": [
+          "admin"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Thành công",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "gateways"
+                  ],
+                  "properties": {
+                    "gateways": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Mã lỗi: invalid_input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Mã lỗi: unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Mã lỗi: forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Quá giới hạn tốc độ (rate_limited); có header Retry-After",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Hub quá tải (overloaded); có header Retry-After",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/calls": {
+      "get": {
+        "operationId": "listCalls",
+        "summary": "Nhật ký lời gọi tới cổng",
+        "x-roles": [
+          "admin"
+        ],
+        "parameters": [
+          {
+            "name": "gateway",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ref",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "description": "Tối đa 1000, mặc định 100"
+            },
+            "description": "Tối đa 1000, mặc định 100"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Thành công",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "calls"
+                  ],
+                  "properties": {
+                    "calls": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Mã lỗi: invalid_input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Mã lỗi: unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Mã lỗi: forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Quá giới hạn tốc độ (rate_limited); có header Retry-After",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Hub quá tải (overloaded); có header Retry-After",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/webhooks": {
+      "get": {
+        "operationId": "listWebhooks",
+        "summary": "Danh sách bản giao sự kiện ra ngoài (mọi tuyến: webhook, kafka...)",
+        "x-roles": [
+          "shop",
+          "admin"
+        ],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "pending",
+                "delivered",
+                "dead"
+              ]
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "description": "Tối đa 1000, mặc định 100"
+            },
+            "description": "Tối đa 1000, mặc định 100"
+          },
+          {
+            "name": "shopId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Thành công",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "webhooks"
+                  ],
+                  "properties": {
+                    "webhooks": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Delivery"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Mã lỗi: invalid_input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Mã lỗi: unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Quá giới hạn tốc độ (rate_limited); có header Retry-After",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Hub quá tải (overloaded); có header Retry-After",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/webhooks/{webhookId}/retry": {
+      "post": {
+        "operationId": "retryWebhook",
+        "summary": "Gửi lại thủ công một bản giao đã dead hoặc đang chờ",
+        "x-roles": [
+          "shop",
+          "admin"
+        ],
+        "parameters": [
+          {
+            "name": "webhookId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Thành công",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Delivery"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Mã lỗi: invalid_input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Mã lỗi: unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Mã lỗi: not_found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Mã lỗi: invalid_state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Quá giới hạn tốc độ (rate_limited); có header Retry-After",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Hub quá tải (overloaded); có header Retry-After",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "operationId": "health",
+        "summary": "Hub còn sống (công khai)",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/metrics": {
+      "get": {
+        "operationId": "metrics",
+        "summary": "Số đo dạng Prometheus (token quản trị hoặc metrics)",
+        "responses": {
+          "200": {
+            "description": "Văn bản Prometheus",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Thiếu hoặc sai token"
+          },
+          "403": {
+            "description": "Token cửa hàng không được dùng"
+          }
+        }
+      }
+    },
+    "/openapi.json": {
+      "get": {
+        "operationId": "openapi",
+        "summary": "Tài liệu OpenAPI này",
+        "responses": {
+          "200": {
+            "description": "OpenAPI 3.1",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ipn/{gateway}": {
+      "get": {
+        "operationId": "ipnGatewayGet",
+        "summary": "Thông báo của cổng thanh toán (IPN/webhook). Không dùng Bearer: mỗi adapter tự xác thực callback (chữ ký của cổng). Phản hồi là ack do adapter dựng theo yêu cầu của cổng.",
+        "security": [],
+        "parameters": [
+          {
+            "name": "gateway",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Mã cổng (id adapter đang bật, xem GET /gateways)"
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "Ack theo định dạng của từng cổng"
+          }
+        }
+      },
+      "post": {
+        "operationId": "ipnGatewayPost",
+        "summary": "Thông báo của cổng thanh toán (IPN/webhook). Không dùng Bearer: mỗi adapter tự xác thực callback (chữ ký của cổng). Phản hồi là ack do adapter dựng theo yêu cầu của cổng.",
+        "security": [],
+        "parameters": [
+          {
+            "name": "gateway",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Mã cổng (id adapter đang bật, xem GET /gateways)"
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "Ack theo định dạng của từng cổng"
+          }
+        }
+      }
+    },
+    "/return/{gateway}": {
+      "get": {
+        "operationId": "returnGatewayGet",
+        "summary": "Cổng chuyển trình duyệt của khách về. Chỉ hiển thị: Hub không đổi trạng thái, chuyển hướng 302 về returnUrl của cửa hàng kèm paymentId, status, attempt.",
+        "security": [],
+        "parameters": [
+          {
+            "name": "gateway",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Mã cổng (id adapter đang bật, xem GET /gateways)"
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "Chuyển về returnUrl của cửa hàng"
+          },
+          "404": {
+            "description": "Không tìm thấy giao dịch"
+          }
+        }
+      },
+      "post": {
+        "operationId": "returnGatewayPost",
+        "summary": "Cổng chuyển trình duyệt của khách về. Chỉ hiển thị: Hub không đổi trạng thái, chuyển hướng 302 về returnUrl của cửa hàng kèm paymentId, status, attempt.",
+        "security": [],
+        "parameters": [
+          {
+            "name": "gateway",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Mã cổng (id adapter đang bật, xem GET /gateways)"
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "Chuyển về returnUrl của cửa hàng"
+          },
+          "404": {
+            "description": "Không tìm thấy giao dịch"
+          }
+        }
+      }
+    }
+  },
+  "webhooks": {
+    "payment.paid": {
+      "post": {
+        "operationId": "event_payment_paid",
+        "summary": "Một payment đã nhận đủ tiền",
+        "description": "Hub gửi tới URL của cửa hàng (hoặc đưa vào Kafka). Ký HMAC-SHA256 trên `${x-hub-timestamp}.${body}` bằng secret của cửa hàng. Giao ít nhất một lần: loại trùng theo `id`.",
+        "parameters": [
+          {
+            "name": "x-hub-event-id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-hub-timestamp",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-hub-signature",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/Event"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "const": "payment.paid"
+                      },
+                      "data": {
+                        "$ref": "#/components/schemas/PaymentPaidData"
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "2xx": {
+            "description": "Đã nhận. Mọi trạng thái khác 2xx hoặc quá hạn: Hub gửi lại theo bậc rồi đánh dấu dead."
+          }
+        }
+      }
+    },
+    "payment.closed": {
+      "post": {
+        "operationId": "event_payment_closed",
+        "summary": "Payment hết hạn hoặc đóng mà chưa nhận tiền",
+        "description": "Hub gửi tới URL của cửa hàng (hoặc đưa vào Kafka). Ký HMAC-SHA256 trên `${x-hub-timestamp}.${body}` bằng secret của cửa hàng. Giao ít nhất một lần: loại trùng theo `id`.",
+        "parameters": [
+          {
+            "name": "x-hub-event-id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-hub-timestamp",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-hub-signature",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/Event"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "const": "payment.closed"
+                      },
+                      "data": {
+                        "$ref": "#/components/schemas/PaymentClosedData"
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "2xx": {
+            "description": "Đã nhận. Mọi trạng thái khác 2xx hoặc quá hạn: Hub gửi lại theo bậc rồi đánh dấu dead."
+          }
+        }
+      }
+    },
+    "refund.updated": {
+      "post": {
+        "operationId": "event_refund_updated",
+        "summary": "Hoàn tiền đạt trạng thái cuối (thành công, thất bại, cần xử lý tay)",
+        "description": "Hub gửi tới URL của cửa hàng (hoặc đưa vào Kafka). Ký HMAC-SHA256 trên `${x-hub-timestamp}.${body}` bằng secret của cửa hàng. Giao ít nhất một lần: loại trùng theo `id`.",
+        "parameters": [
+          {
+            "name": "x-hub-event-id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-hub-timestamp",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-hub-signature",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/Event"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "const": "refund.updated"
+                      },
+                      "data": {
+                        "$ref": "#/components/schemas/RefundUpdatedData"
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "2xx": {
+            "description": "Đã nhận. Mọi trạng thái khác 2xx hoặc quá hạn: Hub gửi lại theo bậc rồi đánh dấu dead."
+          }
+        }
+      }
+    },
+    "anomaly.opened": {
+      "post": {
+        "operationId": "event_anomaly_opened",
+        "summary": "Có tiền bất thường cần xem (tiền về muộn, trùng, sai số...)",
+        "description": "Hub gửi tới URL của cửa hàng (hoặc đưa vào Kafka). Ký HMAC-SHA256 trên `${x-hub-timestamp}.${body}` bằng secret của cửa hàng. Giao ít nhất một lần: loại trùng theo `id`.",
+        "parameters": [
+          {
+            "name": "x-hub-event-id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-hub-timestamp",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-hub-signature",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/Event"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "const": "anomaly.opened"
+                      },
+                      "data": {
+                        "$ref": "#/components/schemas/AnomalyOpenedData"
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "2xx": {
+            "description": "Đã nhận. Mọi trạng thái khác 2xx hoặc quá hạn: Hub gửi lại theo bậc rồi đánh dấu dead."
+          }
+        }
+      }
+    },
+    "command.completed": {
+      "post": {
+        "operationId": "event_command_completed",
+        "summary": "Lệnh nhận qua broker đã thực hiện xong",
+        "description": "Hub gửi tới URL của cửa hàng (hoặc đưa vào Kafka). Ký HMAC-SHA256 trên `${x-hub-timestamp}.${body}` bằng secret của cửa hàng. Giao ít nhất một lần: loại trùng theo `id`.",
+        "parameters": [
+          {
+            "name": "x-hub-event-id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-hub-timestamp",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-hub-signature",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/Event"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "const": "command.completed"
+                      },
+                      "data": {
+                        "$ref": "#/components/schemas/CommandCompletedData"
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "2xx": {
+            "description": "Đã nhận. Mọi trạng thái khác 2xx hoặc quá hạn: Hub gửi lại theo bậc rồi đánh dấu dead."
+          }
+        }
+      }
+    },
+    "command.failed": {
+      "post": {
+        "operationId": "event_command_failed",
+        "summary": "Lệnh nhận qua broker bị từ chối với lỗi nghiệp vụ",
+        "description": "Hub gửi tới URL của cửa hàng (hoặc đưa vào Kafka). Ký HMAC-SHA256 trên `${x-hub-timestamp}.${body}` bằng secret của cửa hàng. Giao ít nhất một lần: loại trùng theo `id`.",
+        "parameters": [
+          {
+            "name": "x-hub-event-id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-hub-timestamp",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-hub-signature",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/Event"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "const": "command.failed"
+                      },
+                      "data": {
+                        "$ref": "#/components/schemas/CommandFailedData"
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "2xx": {
+            "description": "Đã nhận. Mọi trạng thái khác 2xx hoặc quá hạn: Hub gửi lại theo bậc rồi đánh dấu dead."
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Token cửa hàng (chỉ thấy dữ liệu của mình) hoặc token quản trị"
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "Mã lỗi ổn định"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "Payment": {
+        "type": "object",
+        "required": [
+          "id",
+          "shopId",
+          "orderId",
+          "amount",
+          "status"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "shopId": {
+            "type": "string"
+          },
+          "orderId": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "integer"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "OPEN",
+              "PAID",
+              "CLOSED"
+            ]
+          },
+          "product": {
+            "type": "string"
+          },
+          "method": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Phương án thanh toán chuẩn khách hàng đã yêu cầu (null = cổng nào cũng được)"
+          },
+          "createdAt": {
+            "type": "integer"
+          },
+          "expiresAt": {
+            "type": "integer"
+          },
+          "paidAt": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "paidByAttempt": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "Attempt": {
+        "type": "object",
+        "required": [
+          "id",
+          "gateway",
+          "status",
+          "amount"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "ref": {
+            "type": "string"
+          },
+          "gateway": {
+            "type": "string"
+          },
+          "product": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "integer"
+          },
+          "url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Địa chỉ để đưa khách đi thanh toán (cổng chuyển hướng)"
+          },
+          "method": {
+            "type": "string",
+            "enum": [
+              "GET",
+              "POST"
+            ]
+          },
+          "fields": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "description": "Trường form khi method là POST"
+          },
+          "instructions": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "description": "Hướng dẫn chuyển khoản (cổng kiểu chuyển khoản)"
+          },
+          "createdAt": {
+            "type": "integer"
+          },
+          "expiresAt": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "gatewayTxnId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "failReason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "failCode": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Lý do thất bại chuẩn: user_cancelled, expired, insufficient_funds, declined, gateway_error, invalid_request, unknown (null khi chưa thất bại hoặc do Hub tự hủy)"
+          },
+          "gatewayCode": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Mã gốc của cổng, chỉ để tra cứu"
+          },
+          "receivedTotal": {
+            "type": "integer"
+          },
+          "needsOperator": {
+            "type": "boolean"
+          },
+          "nextAction": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "description": "Bước tiếp theo dạng chuẩn: {type: redirect|post_redirect|challenge|poll|qr|deeplink|transfer, ...}; null khi không có. Thêm cạnh url, method, fields, instructions (cửa hàng cũ vẫn dùng được các trường đó)"
+          }
+        }
+      },
+      "Refund": {
+        "type": "object",
+        "required": [
+          "id",
+          "attemptId",
+          "amount",
+          "status"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "ref": {
+            "type": "string"
+          },
+          "attemptId": {
+            "type": "string"
+          },
+          "paymentId": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "integer"
+          },
+          "status": {
+            "type": "string"
+          },
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "createdAt": {
+            "type": "integer"
+          }
+        }
+      },
+      "Anomaly": {
+        "type": "object",
+        "required": [
+          "id",
+          "type",
+          "status"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "paymentId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "attemptId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "gateway": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "amount": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "gatewayTxnId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "arbiter": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "description": "Kết quả hỏi cổng: {verdict, at}"
+          },
+          "at": {
+            "type": "integer"
+          },
+          "detail": {
+            "type": [
+              "string",
+              "object",
+              "null"
+            ]
+          },
+          "refundId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "PaymentDetail": {
+        "type": "object",
+        "required": [
+          "payment",
+          "attempts",
+          "refunds",
+          "anomalies"
+        ],
+        "properties": {
+          "payment": {
+            "$ref": "#/components/schemas/Payment"
+          },
+          "attempts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Attempt"
+            }
+          },
+          "refunds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Refund"
+            }
+          },
+          "anomalies": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Anomaly"
+            }
+          }
+        }
+      },
+      "CreatePaymentResult": {
+        "type": "object",
+        "required": [
+          "existing",
+          "payment",
+          "attempts"
+        ],
+        "properties": {
+          "existing": {
+            "type": "boolean",
+            "description": "true khi đơn đã có payment chưa đóng (gọi lại idempotent)"
+          },
+          "payment": {
+            "$ref": "#/components/schemas/Payment"
+          },
+          "attempts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Attempt"
+            }
+          },
+          "refunds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Refund"
+            }
+          },
+          "anomalies": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Anomaly"
+            }
+          },
+          "attempt": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Attempt"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "Delivery": {
+        "type": "object",
+        "required": [
+          "id",
+          "type",
+          "status",
+          "route",
+          "sink"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "shopId": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "objectId": {
+            "type": "string"
+          },
+          "route": {
+            "type": "string"
+          },
+          "sink": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "delivered",
+              "dead"
+            ]
+          },
+          "attempts": {
+            "type": "integer"
+          },
+          "nextAt": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "createdAt": {
+            "type": "integer"
+          },
+          "deliveredAt": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "lastStatus": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "lastError": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "Event": {
+        "type": "object",
+        "required": [
+          "id",
+          "type",
+          "createdAt",
+          "key",
+          "data"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Định danh ổn định của sự kiện; người nhận loại trùng theo trường này (giao ít nhất một lần)"
+          },
+          "type": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "integer",
+            "description": "Mili giây từ epoch"
+          },
+          "shopId": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string",
+            "description": "Khóa thứ tự: các sự kiện cùng key đến đúng thứ tự tạo ở đích có thứ tự (Kafka dùng làm khóa phân vùng)"
+          },
+          "data": {
+            "type": "object"
+          }
+        }
+      },
+      "PaymentPaidData": {
+        "type": "object",
+        "required": [
+          "paymentId",
+          "orderId",
+          "amount"
+        ],
+        "properties": {
+          "paymentId": {
+            "type": "string"
+          },
+          "orderId": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "integer"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "paidAt": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "attemptId": {
+            "type": "string"
+          },
+          "gateway": {
+            "type": "string"
+          },
+          "gatewayTxnId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "PaymentClosedData": {
+        "type": "object",
+        "required": [
+          "paymentId",
+          "orderId"
+        ],
+        "properties": {
+          "paymentId": {
+            "type": "string"
+          },
+          "orderId": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "integer"
+          },
+          "status": {
+            "type": "string"
+          }
+        }
+      },
+      "RefundUpdatedData": {
+        "type": "object",
+        "required": [
+          "refundId",
+          "paymentId",
+          "status"
+        ],
+        "properties": {
+          "refundId": {
+            "type": "string"
+          },
+          "paymentId": {
+            "type": "string"
+          },
+          "attemptId": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "integer"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "SUCCEEDED",
+              "FAILED",
+              "MANUAL_REQUIRED"
+            ]
+          }
+        }
+      },
+      "AnomalyOpenedData": {
+        "type": "object",
+        "required": [
+          "anomalyId",
+          "type"
+        ],
+        "properties": {
+          "anomalyId": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "paymentId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "attemptId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "gateway": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "amount": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "gatewayTxnId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "CommandCompletedData": {
+        "type": "object",
+        "required": [
+          "commandId",
+          "op",
+          "result"
+        ],
+        "properties": {
+          "commandId": {
+            "type": "string"
+          },
+          "op": {
+            "type": "string"
+          },
+          "result": {
+            "description": "Kết quả đúng như phản hồi HTTP tương ứng"
+          }
+        }
+      },
+      "CommandFailedData": {
+        "type": "object",
+        "required": [
+          "commandId",
+          "op",
+          "error"
+        ],
+        "properties": {
+          "commandId": {
+            "type": "string"
+          },
+          "op": {
+            "type": "string"
+          },
+          "error": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "Command": {
+        "type": "object",
+        "required": [
+          "commandId",
+          "op"
+        ],
+        "properties": {
+          "commandId": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Do bên gửi tạo; hiệu ứng đúng một lần theo mã này"
+          },
+          "op": {
+            "type": "string",
+            "description": "Tên thao tác trong danh mục (xem các đường dẫn của OpenAPI, operationId)"
+          },
+          "input": {
+            "type": "object",
+            "description": "Đầu vào của thao tác, cùng schema với thân/query HTTP"
+          },
+          "shopId": {
+            "type": "string",
+            "description": "Chỉ có tác dụng khi nguồn vào cấu hình principal quản trị tin cậy"
+          }
+        }
+      }
+    }
+  },
+  "x-kafka": {
+    "description": "Kết nối qua broker (tùy cấu hình connectors). Lệnh vào dùng schema Command; sự kiện ra dùng schema Event, key là Event.key.",
+    "command": {
+      "schema": "Command",
+      "operations": [
+        "createPayment",
+        "getPayment",
+        "createAttempt",
+        "capturePayment",
+        "voidPayment",
+        "createRefund",
+        "markRefundDone",
+        "listAnomalies",
+        "resolveAnomaly",
+        "reconcile",
+        "listGateways",
+        "listCalls",
+        "listWebhooks",
+        "retryWebhook"
+      ]
+    },
+    "events": {
+      "schema": "Event",
+      "types": [
+        "payment.paid",
+        "payment.closed",
+        "refund.updated",
+        "anomaly.opened",
+        "command.completed",
+        "command.failed"
+      ]
+    }
+  }
+}

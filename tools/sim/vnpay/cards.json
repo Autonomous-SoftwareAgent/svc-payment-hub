@@ -1,0 +1,10 @@
+{
+  "_note": "Bang the test cua VNPay sandbox (nguon: docs/vnpay-demo). verified=false: chua doi chieu ket qua tren sandbox that (VNPS-S-003).",
+  "cards": [
+    { "number": "9704198526191432198", "bank": "NCB", "holder": "NGUYEN VAN A", "responseCode": "00", "transactionStatus": "00", "meaning": "thanh cong", "verified": false },
+    { "number": "9704195798459170488", "bank": "NCB", "holder": "NGUYEN VAN A", "responseCode": "51", "transactionStatus": "02", "meaning": "khong du so du", "verified": false },
+    { "number": "9704192181368742", "bank": "NCB", "holder": "NGUYEN VAN A", "responseCode": "09", "transactionStatus": "02", "meaning": "the chua kich hoat (ma la gia dinh)", "verified": false },
+    { "number": "9704193370791314", "bank": "NCB", "holder": "NGUYEN VAN A", "responseCode": "12", "transactionStatus": "02", "meaning": "the bi khoa", "verified": false },
+    { "number": "9704194841945513", "bank": "NCB", "holder": "NGUYEN VAN A", "responseCode": "10", "transactionStatus": "02", "meaning": "the het han (ma la gia dinh)", "verified": false }
+  ]
+}

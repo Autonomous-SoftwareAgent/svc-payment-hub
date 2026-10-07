@@ -1,0 +1,192 @@
+schema: 1
+terms:
+  - term: "chuyển cổng"
+    means: "Tạo lần thử (attempt) mới cho đơn đang mở, ở cùng cổng hoặc cổng khác. Chỉ được khi không còn lần thử nào có thể nhận tiền, nếu không báo attempt_still_live để tránh thu hai lần"
+    also:
+      - "thử lại"
+      - "failover"
+      - "đổi cổng"
+      - "tạo lần thử mới"
+    refs:
+      - "file:payment-hub:src/hub.js"
+    evidence:
+      - file: "src/hub.js"
+        line: 399
+      - file: "src/hub.js"
+        line: 421
+    updated: "2026-10-06"
+  - term: "chưa rõ"
+    means: "Lần thử mất phản hồi của cổng nên chưa biết đã thu tiền hay chưa: coi là còn có thể nhận tiền, chờ thông báo hoặc đối soát, không bao giờ coi là thất bại và không chuyển cổng khác"
+    also:
+      - "không biết kết quả"
+      - "mất phản hồi"
+      - "UNKNOWN"
+      - "timeout khi tạo thanh toán"
+    refs:
+      - "file:payment-hub:src/hub.js"
+    evidence:
+      - file: "src/hub.js"
+        line: 535
+      - file: "src/hub.js"
+        line: 41
+    updated: "2026-10-06"
+  - term: "đối soát"
+    means: "Việc chạy nền định kỳ hỏi lại cổng về các lần thử còn treo, quá hạn hoặc đang giữ tiền quá lâu, để tìm kết quả mà thông báo bị mất hoặc đến muộn"
+    also:
+      - "reconcile"
+      - "hỏi lại cổng"
+      - "kiểm tra lần thử treo"
+    refs:
+      - "file:payment-hub:src/hub.js"
+    evidence:
+      - file: "src/hub.js"
+        line: 813
+      - file: "src/hub.js"
+        line: 873
+    updated: "2026-10-06"
+  - term: "giữ tiền"
+    means: "Cổng đã giữ tiền trong thẻ khách nhưng chưa thu: lần thử ở trạng thái AUTHORIZED vẫn có thể thành tiền nên chặn việc tạo lần thử khác, và Hub không tự thu hay nhả (giữ quá lâu thì báo authorization_stale)"
+    also:
+      - "authorize"
+      - "AUTHORIZED"
+      - "cổng đang giữ tiền"
+      - "chưa thu"
+    refs:
+      - "file:payment-hub:src/hub.js"
+    evidence:
+      - file: "src/hub.js"
+        line: 41
+      - file: "src/hub.js"
+        line: 823
+    updated: "2026-10-06"
+  - term: "hết hạn cứng"
+    means: "Mốc sau đó cổng chắc chắn không nhận tiền nữa (số phút do adapter khai). Qua mốc này cộng thêm thời gian chờ, Hub hỏi cổng lần cuối rồi mới đóng lần thử"
+    also:
+      - "hard expiry"
+      - "hạn tối đa của cổng"
+      - "quá hạn thanh toán"
+    refs:
+      - "file:payment-hub:src/hub.js"
+    evidence:
+      - file: "src/hub.js"
+        line: 828
+    updated: "2026-10-06"
+  - term: "hoàn tiền"
+    means: "Trả tiền lại cho khách từ một lần thử đã nhận tiền. Với khoản tiền về muộn hoặc thu hai lần, Hub chỉ hoàn khi cổng xác nhận đã nhận tiền; chỉ quản trị mới được ép (force)"
+    also:
+      - "refund"
+      - "trả lại tiền cho khách"
+    refs:
+      - "file:payment-hub:src/hub.js"
+    evidence:
+      - file: "src/hub.js"
+        line: 960
+      - file: "src/hub.js"
+        line: 964
+      - file: "src/app/operations.js"
+        line: 117
+    updated: "2026-10-06"
+  - term: "tạo trùng đơn"
+    means: "Gọi tạo thanh toán lại với cùng cửa hàng và orderId khi đơn cũ chưa đóng: cùng số tiền và loại tiền thì trả lại đơn cũ, khác thì báo order_conflict, không bao giờ tạo thêm lần thu"
+    also:
+      - "idempotent"
+      - "trùng orderId"
+      - "gọi lại cùng đơn"
+    refs:
+      - "file:payment-hub:src/hub.js"
+    evidence:
+      - file: "src/hub.js"
+        line: 357
+    updated: "2026-10-06"
+  - term: "thông báo của cổng"
+    means: "Cổng thanh toán báo kết quả về Hub qua đường dẫn /ipn/{gateway} hoặc /return/{gateway}; Hub kiểm chữ ký, chuẩn hóa thành sự kiện chuẩn rồi áp lên lần thử, xử lý cả thông báo trùng và sai thứ tự"
+    also:
+      - "IPN"
+      - "callback"
+      - "webhook vào"
+      - "return"
+      - "cổng báo kết quả"
+    refs:
+      - "file:payment-hub:src/hub.js"
+      - "file:payment-hub:src/server.js"
+    evidence:
+      - file: "src/hub.js"
+        line: 550
+      - file: "src/server.js"
+        line: 160
+    updated: "2026-10-06"
+  - term: "thu tiền đã giữ"
+    means: "Capture thu đủ số tiền cổng đang giữ; void nhả khoản giữ cho khách. Chỉ thu đủ, không thu một phần; nếu cổng không trả lời thì thao tác ở trạng thái chưa rõ và chặn thao tác thứ hai (op_in_progress)"
+    also:
+      - "capture"
+      - "nhả tiền"
+      - "void"
+      - "hủy giữ tiền"
+    refs:
+      - "file:payment-hub:src/hub.js"
+    evidence:
+      - file: "src/hub.js"
+        line: 1018
+      - file: "src/hub.js"
+        line: 1024
+      - file: "src/hub.js"
+        line: 1045
+    updated: "2026-10-06"
+  - term: "thu tiền hai lần"
+    means: "Đơn đã trả xong rồi mà một lần thử khác cũng báo thành công: tiền bị thu hai lần, Hub ghi cảnh báo duplicate_charge và không tự hoàn tiền"
+    also:
+      - "trả hai lần"
+      - "duplicate charge"
+      - "tiền về lần hai"
+    refs:
+      - "file:payment-hub:src/hub.js"
+    evidence:
+      - file: "src/hub.js"
+        line: 635
+      - file: "src/hub.js"
+        line: 46
+    updated: "2026-10-06"
+  - term: "tiền bất thường"
+    means: "Một cảnh báo Hub ghi khi tiền hoặc thông báo không khớp trạng thái (tiền về muộn, thu hai lần, bị hoàn từ ngoài, tranh chấp...). Quản trị phân xử bằng hoàn tiền, áp vào đơn hoặc bỏ qua"
+    also:
+      - "anomaly"
+      - "cảnh báo tiền"
+      - "phân xử"
+      - "resolve"
+    refs:
+      - "file:payment-hub:src/hub.js"
+    evidence:
+      - file: "src/hub.js"
+        line: 1127
+      - file: "src/hub.js"
+        line: 669
+    updated: "2026-10-06"
+  - term: "tiền về muộn"
+    means: "Khách trả thành công ở cổng sau khi Hub đã coi lần thử đó là thất bại, hủy hoặc hết hạn: Hub không đổi trạng thái cuối mà ghi cảnh báo late_success để người vận hành hoàn tiền hoặc áp vào đơn"
+    also:
+      - "thanh toán muộn"
+      - "late success"
+      - "tiền về sau khi đã hủy"
+      - "tiền về sau khi hết hạn"
+    refs:
+      - "file:payment-hub:src/hub.js"
+    evidence:
+      - file: "src/hub.js"
+        line: 642
+      - file: "src/hub.js"
+        line: 46
+    updated: "2026-10-06"
+  - term: "tranh chấp"
+    means: "Ngân hàng của khách khiếu nại một khoản đã thu. Hub chỉ ghi cảnh báo dispute_opened, dispute_won, dispute_lost và không đổi trạng thái đơn hay lần thử"
+    also:
+      - "dispute"
+      - "chargeback"
+      - "khiếu nại thẻ"
+    refs:
+      - "file:payment-hub:src/hub.js"
+    evidence:
+      - file: "src/hub.js"
+        line: 703
+      - file: "src/hub.js"
+        line: 1131
+    updated: "2026-10-06"

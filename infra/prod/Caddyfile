@@ -1,0 +1,25 @@
+# TLS tự động (Let's Encrypt) cho HUB_DOMAIN; HUB_DOMAIN=localhost thì Caddy dùng CA nội bộ.
+# Công khai: /ipn/*, /return/*, /health.
+# Còn lại (cửa hàng/vận hành): bắt buộc có header Authorization (Hub vẫn kiểm token);
+# nếu đặt HUB_ADMIN_ALLOW_CIDR (vd "203.0.113.0/24 198.51.100.7/32") thì thêm giới hạn theo IP nguồn.
+{$HUB_DOMAIN} {
+	encode zstd gzip
+
+	@public path /ipn/* /return/* /health
+	handle @public {
+		reverse_proxy hub:8080
+	}
+
+	handle {
+		@noauth not header Authorization *
+		respond @noauth "unauthorized" 401
+
+		# IP nguồn: HUB_ADMIN_ALLOW_CIDR (compose đặt mặc định "0.0.0.0/0 ::/0" = mọi IP khi để trống).
+		@notallowed not remote_ip {$HUB_ADMIN_ALLOW_CIDR}
+		respond @notallowed "forbidden" 403
+
+		reverse_proxy hub:8080
+	}
+
+	header -Server
+}

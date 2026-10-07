@@ -1,0 +1,136 @@
+id: "du-lieu-bang"
+type: "erd"
+title: "Các bảng PostgreSQL của Payment Hub"
+tab: "architecture"
+sources:
+  - "src/store-postgres.js"
+explain:
+  meaning: "Đây là hình dạng THẬT của cơ sở dữ liệu PostgreSQL: chỉ có năm bảng chung chung. Đơn, lần thử thanh toán, hoàn tiền, cảnh báo tiền và bản giao sự kiện KHÔNG có bảng riêng; tất cả nằm dưới dạng JSON trong cột docs.doc. Khi Hub khởi động lại, tiền của khách và trạng thái đơn được nạp lại từ các bảng này, nên hiểu bảng nào giữ gì là hiểu dữ liệu tiền sống ở đâu."
+  read:
+    - "Mỗi khung là một bảng thật; không có đường nối nào vì cơ sở dữ liệu không khai khóa ngoại."
+    - "Cột đánh PK là khóa chính: cơ sở dữ liệu không cho hai dòng trùng khóa này. Bảng docs có khóa chính ghép từ hai cột kind và id."
+    - "Muốn biết các đối tượng nghiệp vụ nối với nhau thế nào, xem sơ đồ du-lieu-mo-hinh (mô hình logic)."
+    - "Hình KHÔNG vẽ chỉ mục (index), nên các chỉ mục chống trùng và tăng tốc nằm ở mục Chi tiết và Dễ hiểu nhầm."
+  details:
+    - term: "docs"
+      text: "Bảng chính, giữ mọi đối tượng nghiệp vụ. Mỗi dòng là một đối tượng JSON; cột kind cho biết đó là payment, attempt, refund, anomaly hay webhook. Hub ghi bằng câu lệnh chèn hoặc cập nhật theo (kind, id) khi lưu các đối tượng đã đổi trong một transaction."
+    - term: "docs.kind"
+      text: "Loại đối tượng, một trong năm giá trị store.js chấp nhận: payment, attempt, refund, anomaly, webhook. Cùng với id tạo thành khóa chính nên một đối tượng chỉ có đúng một dòng."
+    - term: "docs.id"
+      text: "Mã đối tượng do Hub sinh (ví dụ pay_12, att_13). Mã chỉ duy nhất trong cùng một kind."
+    - term: "docs.doc"
+      text: "Toàn bộ nội dung đối tượng dạng JSONB: số tiền, trạng thái, paymentId trỏ về đơn... Các trường này không phải cột, nên cơ sở dữ liệu không kiểm kiểu hay bắt buộc có."
+    - term: "docs.n"
+      text: "Số thứ tự tự tăng do cơ sở dữ liệu sinh, dùng để sắp theo thứ tự tạo (ví dụ lấy payment mới nhất của đơn). Không phải khóa chính."
+    - term: "docs (chỉ mục tìm đơn)"
+      text: "docs_payment_order (cửa hàng + orderId, chỉ cho payment) để tìm đơn đã có; docs_attempt_ref (cổng + mã tham chiếu viết thường, chỉ cho attempt) để gắn thông báo của cổng; docs_by_payment (kind + paymentId) để nạp mọi thứ của một đơn."
+    - term: "docs (chỉ mục nạp lúc khởi động)"
+      text: "docs_live phủ dòng đang hoạt động; docs_live2 = docs_live thêm AUTHORIZED (giữ chỉ mục cũ cho bản trước). docs_webhook_status theo trạng thái webhook. Khởi động còn nạp attempt đã đóng có recheckAt, hai chỉ mục này không phủ. Chưa kiểm planner dùng thật."
+    - term: "events"
+      text: "Nhật ký sự kiện đã xử lý (thông báo cổng, lỗi phân tích, hỏi lại cổng...). Chỉ chèn thêm, khóa chính n do Hub tự đánh số. Bộ nhớ giữ 1000 đến 2000 dòng cuối: nạp 1000 lúc khởi động, cắt về 1000 khi vượt 2000."
+    - term: "events.n"
+      text: "Số thứ tự do Hub tự cấp (không tự tăng ở cơ sở dữ liệu), nên hai lần ghi cùng số sẽ bị từ chối."
+    - term: "calls"
+      text: "Nhật ký mọi lần Hub gọi cổng thanh toán (cổng, hàm, mã tham chiếu, kết quả trong doc). Chỉ chèn thêm; bộ nhớ cũng giữ đuôi và cắt về 1000 khi vượt 2000."
+    - term: "calls.ref"
+      text: "Mã tham chiếu của attempt trong lần gọi (nếu không có thì mã hoàn tiền); thực tế luôn là mã attempt hoặc null (lần kéo sao kê không có mã). Có chỉ mục để tra theo mã."
+    - term: "seen"
+      text: "Các khóa chống xử lý trùng (idempotency): thông báo của cổng hoặc lệnh nhận qua Kafka đã thấy rồi thì lần sau bị coi là trùng, tiền không bị cộng hai lần. Hub chèn khóa mới và xóa khóa quá hạn."
+    - term: "seen.k"
+      text: "Khóa chống trùng, ba dạng: gateway|attemptRef|gatewayTxnId|type|source (thêm |amount với reversed và dispute_*), gateway|unmatched|txn|amount, và cmd|commandId. Là khóa chính nên chèn lần hai bị bỏ qua (ON CONFLICT DO NOTHING)."
+    - term: "seen.at"
+      text: "Lúc khóa được ghi; purgeSeen xóa các khóa cũ hơn số ngày cấu hình để bảng không phình mãi."
+    - term: "meta"
+      text: "Bảng nhỏ kiểu khóa-giá trị giữ số liệu cần sống qua khởi động lại: bộ đếm id (seq), con trỏ sao kê của từng cổng (cursors), lần kéo sao kê gần nhất (feedAt) và dữ liệu phụ như trạng thái ngắt mạch của cổng (extra)."
+    - term: "meta.k"
+      text: "Bốn khóa Hub ghi: seq, cursors, feedAt, extra; v là chuỗi JSON. Mất bộ đếm seq thì id mới có thể trùng id cũ (suy luận từ store.js, mã chưa thử)."
+  pitfalls:
+    - "Chỉ mục KHÔNG hiện trên hình; các chỉ mục quan trọng (docs_payment_order, docs_attempt_ref, docs_by_payment, docs_live, docs_webhook_status...) được giải thích ở hai mục Chi tiết của docs, lấy từ src/store-postgres.js."
+    - "Chống trùng nằm ở khóa chính docs(kind, id), events(n), calls(n), seen(k), meta(k); webhook mới chèn bằng ON CONFLICT DO NOTHING. KHÔNG có ràng buộc duy nhất cho (cửa hàng, orderId): một đơn một payment mở là do mã Hub giữ, docs_payment_order chỉ tăng tốc tìm."
+    - "KHÔNG có khóa ngoại nào: hình không có đường nối. Việc attempt thuộc về payment nào chỉ là chuỗi paymentId trong JSON; cơ sở dữ liệu không ngăn một attempt trỏ vào đơn không tồn tại."
+    - "Đối tượng nghiệp vụ không phải bảng. Đừng tìm bảng payments hay refunds: hãy truy vấn docs theo kind. Cấu trúc bên trong JSON xem sơ đồ du-lieu-mo-hinh (khai tay từ mã)."
+    - "Mỗi schema chỉ cho một tiến trình Hub ghi (khóa tư vấn pg_try_advisory_lock lúc mở). Đây là khóa của kết nối, không hiện trong cấu trúc bảng."
+    - "Hình sinh từ lệnh tạo bảng trong mã, chưa đối chiếu với cơ sở dữ liệu của môi trường chạy thật. Cột n của docs hiện trong hình không mang PK vì khóa chính là cặp kind và id."
+  basis: "ce8acbbb34b9d837"
+entities:
+  - id: "calls"
+    store: "table"
+    columns:
+      - type: "bigint"
+        name: "n"
+        keys:
+          - "PK"
+      - type: "bigint"
+        name: "at"
+        keys: []
+      - type: "text"
+        name: "gateway"
+        keys: []
+      - type: "text"
+        name: "method"
+        keys: []
+      - type: "text"
+        name: "ref"
+        keys: []
+        note: "cho phép trống"
+      - type: "jsonb"
+        name: "doc"
+        keys: []
+  - id: "docs"
+    store: "table"
+    columns:
+      - type: "bigint"
+        name: "n"
+        keys: []
+      - type: "text"
+        name: "kind"
+        keys:
+          - "PK"
+      - type: "text"
+        name: "id"
+        keys:
+          - "PK"
+      - type: "jsonb"
+        name: "doc"
+        keys: []
+  - id: "events"
+    store: "table"
+    columns:
+      - type: "bigint"
+        name: "n"
+        keys:
+          - "PK"
+      - type: "jsonb"
+        name: "doc"
+        keys: []
+  - id: "meta"
+    store: "table"
+    columns:
+      - type: "text"
+        name: "k"
+        keys:
+          - "PK"
+      - type: "text"
+        name: "v"
+        keys: []
+  - id: "seen"
+    store: "table"
+    columns:
+      - type: "text"
+        name: "k"
+        keys:
+          - "PK"
+      - type: "timestamptz"
+        name: "at"
+        keys: []
+relations: []
+generated:
+  reader: "postgres"
+  command:
+    - "node"
+    - "-e"
+    - "require('./src/store-postgres').PostgresStore.open(process.env.HUB_DATABASE_URL).then((s) => s.close()).catch((e) => { console.error(e.message); process.exit(1); })"
+  url_env: "HUB_DATABASE_URL"
+  url_format: "postgres://{user}:{password}@{host}:{port}/{db}"
+  tables: []
+  basis: "75113d87883f6a7f"

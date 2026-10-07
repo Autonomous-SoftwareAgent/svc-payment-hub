@@ -1,0 +1,333 @@
+id: "du-lieu-mo-hinh"
+type: "erd"
+title: "Mô hình dữ liệu nghiệp vụ (đối tượng JSON trong bảng docs)"
+tab: "architecture"
+sources:
+  - "src/hub.js"
+  - "src/store.js"
+  - "src/store-postgres.js"
+  - "src/events.js"
+explain:
+  meaning: "Hình này nói các đối tượng nghiệp vụ nối với nhau thế nào: một đơn thanh toán có nhiều lần thử, một lần thử có thể có nhiều lần hoàn tiền, và khi có tiền lạ hoặc sự kiện cần báo cho cửa hàng thì Hub ghi cảnh báo hoặc bản giao tương ứng. Biết quan hệ này là biết tiền đã thu của đơn nào, qua cổng nào, và hoàn đã hoàn từ khoản nào. Toàn bộ năm đối tượng này lưu dưới dạng JSON trong cột docs.doc, phân biệt bằng docs.kind."
+  read:
+    - "Mỗi khung là một loại đối tượng (cũng là giá trị của docs.kind). Đây không phải bảng."
+    - "Đường nối đi từ phía một sang phía nhiều; nhãn trên đường là tên trường JSON chứa mã của phía kia (ví dụ attempt.paymentId)."
+    - "Đọc từ payment sang attempt rồi refund để theo dõi đường đi của tiền: đơn, lần thử qua một cổng, hoàn tiền."
+    - "Cảnh báo (anomaly) và bản giao (webhook) là nhánh phụ: không phải mọi anomaly gắn được vào đơn."
+  details:
+    - term: "payment"
+      text: "Đơn thanh toán: tiền, loại tiền, OPEN/PAID/CLOSED. Id pay_N, att_N, ref_N, an_N dùng chung MỘT bộ đếm meta.seq. Gọi lại cùng orderId khi đơn chưa CLOSED (kể cả PAID) nhận đơn cũ; khác tiền hoặc loại tiền thì lỗi order_conflict."
+    - term: "payment.paidByAttempt"
+      text: "Mã attempt làm đơn thành PAID; null khi chưa trả. Thường là attempt SUCCEEDED, nhưng khi người vận hành áp tiền về muộn thì là attempt đã đóng không thành công (FAILED, CANCELLED hoặc EXPIRED)."
+    - term: "attempt"
+      text: "Một lần thử thu tiền qua một cổng cụ thể. Một đơn có thể có nhiều lần (khách thử lại, hoặc Hub chuyển sang cổng khác). Id dạng att_N."
+    - term: "attempt.ref"
+      text: "Mã tham chiếu Hub sinh và gửi cho cổng; thông báo của cổng quay về mang mã này để Hub biết thuộc lần thử nào."
+    - term: "attempt.state"
+      text: "Dữ liệu riêng của adapter, lõi chỉ lưu và trả lại. Mã chỉ ép giới hạn 2048 byte; \"không chứa bí mật\" chỉ là quy ước trong chú thích contract.js."
+    - term: "attempt.receipts"
+      text: "Danh sách khoản tiền nhận được, mỗi phần tử có txn, amount, at, source. Chủ yếu cho kiểu chuyển khoản, nơi một lần thử có thể nhận nhiều khoản."
+    - term: "attempt.recheckAt"
+      text: "Lịch hỏi lại cổng sau khi lần thử đã đóng không thành công, phòng tiền về muộn."
+    - term: "refund"
+      text: "Một lần hoàn tiền cho attempt đã thu, hoặc attempt có cảnh báo late_success hay duplicate_charge (cổng phải xác nhận tiền đã về trước). Id ref_N; mã gửi cổng ở refund.ref."
+    - term: "refund.attemptId"
+      text: "Lần thử mà khoản hoàn lấy tiền từ đó. Nhiều refund có thể cùng trỏ vào một attempt (hoàn từng phần)."
+    - term: "refund.paymentId"
+      text: "Đơn của khoản hoàn, sao chép từ attempt.paymentId lúc tạo; dùng để nạp mọi thứ của một đơn từ cơ sở dữ liệu."
+    - term: "anomaly"
+      text: "Cảnh báo tiền bất thường để người vận hành xử lý: tiền chưa rõ chủ, trả thiếu, lần thử treo... Id dạng an_N, trạng thái đầu là open."
+    - term: "anomaly.paymentId"
+      text: "Đơn liên quan, có thể vắng: unmatched_funds chỉ có gateway, amount, gatewayTxnId và detail; unknown_attempt có thêm attemptRef (trường này vắng ở unmatched_funds, không phải null)."
+    - term: "anomaly.refundId"
+      text: "Chỉ có khi người vận hành xử lý bằng cách hoàn tiền; trỏ tới refund được tạo. Quan hệ này không vẽ thành đường nối."
+    - term: "webhook"
+      text: "Một bản giao sự kiện ra ngoài cho cửa hàng (hộp thư đi): payment.paid, refund.updated, anomaly.opened... Mỗi tuyến khớp có một bản riêng, nên một sự kiện có thể sinh nhiều webhook."
+    - term: "webhook.objectId"
+      text: "Mã đối tượng gốc của sự kiện: payment, refund hoặc anomaly; với command.completed và command.failed là commandId của lệnh Kafka, KHÔNG trỏ tới đối tượng nào trong docs. Nên đây là quan hệ lỏng."
+    - term: "webhook.status"
+      text: "pending (chờ gửi), delivered (đã giao), dead (bỏ sau khi hết số lần thử). Bản delivered hoặc dead được đẩy khỏi bộ nhớ sau khi đã lưu."
+    - term: "webhook.id"
+      text: "Bằng eventId nếu bản giao đi qua tuyến mặc định tên webhook; với tuyến khác là eventId~tên tuyến. Nên một sự kiện có thể sinh nhiều webhook khi có nhiều tuyến."
+    - term: "payment.status"
+      text: "OPEN (đang chờ tiền), PAID (đã thu), CLOSED (hết hạn, không còn lần thử nào nhận được tiền). Liệt kê từ chỗ mã gán."
+    - term: "attempt.status"
+      text: "Còn sống: CREATED, AWAITING, UNKNOWN, AUTHORIZED (cổng đang giữ tiền). Đã đóng: SUCCEEDED, FAILED, CANCELLED, EXPIRED (đóng suy ra từ _finalize, chưa liệt kê hết từng chỗ gán)."
+    - term: "refund.status"
+      text: "REQUESTED, PROCESSING, SUCCEEDED, FAILED, MANUAL_REQUIRED (cổng không hoàn qua API, người vận hành làm tay)."
+    - term: "anomaly.status"
+      text: "open, refunding, applied, ignored, superseded. refunding chỉ được gán một lần khi vận hành chọn hoàn tiền."
+  pitfalls:
+    - "Sơ đồ này KHAI TAY TỪ MÃ (src/hub.js, src/store.js, src/events.js), không đọc từ cơ sở dữ liệu. Nó phản ánh các trường mà mã đặt vào đối tượng lúc tạo hoặc sửa, có thể lệch nếu mã đổi mà hình chưa được cập nhật."
+    - "Cơ sở dữ liệu KHÔNG ép quan hệ nào trong hình: không khóa ngoại, JSON không ràng buộc. Chỉ mã Hub giữ cho paymentId, attemptId trỏ đúng; một attempt vẫn có thể trỏ vào đơn không tồn tại."
+    - "Chỉ liệt kê trường chính; đối tượng thật còn nhiều trường khác (ví dụ attempt có url, nextCheckAt, finalizedAt, authorizedAt, closedTxn; payment có product, extra, returnUrl, clientIp, orderInfo)."
+    - "Giá trị status chỉ là liệt kê từ chỗ mã gán, không có ràng buộc ở cơ sở dữ liệu. Anomaly: mã chỉ gán refunding trong resolveAnomaly và không đổi tiếp khi hoàn tiền xong, nên anomaly còn refunding dù refund đã SUCCEEDED."
+    - "Nhật ký sự kiện (events), nhật ký gọi cổng (calls) và khóa chống trùng (seen) KHÔNG phải đối tượng JSON trong docs; chúng là bảng riêng, xem sơ đồ du-lieu-bang."
+    - "Mọi hành vi với cổng thật (trả tiền muộn, mã lỗi, hoàn tiền) mới chỉ chạy với simulator, chưa kiểm với cổng thật; hình chỉ nói cấu trúc dữ liệu, không bảo đảm hành vi đó."
+  basis: "9916009fdb7146d5"
+direction: "LR"
+entities:
+  - id: "payment"
+    label: "payment (đơn thanh toán)"
+    store: "json"
+    columns:
+      - type: "string"
+        name: "id"
+        keys:
+          - "PK"
+        note: "pay_N"
+      - type: "string"
+        name: "shopId"
+        keys: []
+        note: "vắng thì default"
+      - type: "string"
+        name: "orderId"
+        keys: []
+        note: "chưa CLOSED thì dùng lại payment cũ"
+      - type: "number"
+        name: "amount"
+        keys: []
+        note: "đơn vị nhỏ nhất"
+      - type: "string"
+        name: "currency"
+        keys: []
+      - type: "string"
+        name: "method"
+        keys: []
+        note: "có thể null"
+      - type: "string"
+        name: "status"
+        keys: []
+        note: "OPEN, PAID, CLOSED"
+      - type: "number"
+        name: "createdAt"
+        keys: []
+      - type: "number"
+        name: "expiresAt"
+        keys: []
+      - type: "string"
+        name: "paidByAttempt"
+        keys: []
+        note: "attempt làm đơn PAID"
+      - type: "number"
+        name: "paidAt"
+        keys: []
+  - id: "attempt"
+    label: "attempt (lần thử thanh toán)"
+    store: "json"
+    columns:
+      - type: "string"
+        name: "id"
+        keys:
+          - "PK"
+        note: "att_N"
+      - type: "string"
+        name: "ref"
+        keys: []
+        note: "mã gửi cho cổng"
+      - type: "string"
+        name: "paymentId"
+        keys:
+          - "FK"
+      - type: "string"
+        name: "gateway"
+        keys: []
+        note: "id cổng"
+      - type: "number"
+        name: "amount"
+        keys: []
+      - type: "string"
+        name: "status"
+        keys: []
+        note: "xem sơ đồ trạng thái attempt"
+      - type: "string"
+        name: "gatewayTxnId"
+        keys: []
+        note: "mã giao dịch phía cổng"
+      - type: "string"
+        name: "failCode"
+        keys: []
+        note: "lý do thất bại chuẩn"
+      - type: "object"
+        name: "state"
+        keys: []
+        note: "dữ liệu riêng của adapter"
+      - type: "array"
+        name: "receipts"
+        keys: []
+        note: "các khoản tiền nhận"
+      - type: "number"
+        name: "recheckAt"
+        keys: []
+        note: "lịch hỏi lại cổng"
+      - type: "boolean"
+        name: "needsOperator"
+        keys: []
+  - id: "refund"
+    label: "refund (hoàn tiền)"
+    store: "json"
+    columns:
+      - type: "string"
+        name: "id"
+        keys:
+          - "PK"
+        note: "ref_N"
+      - type: "string"
+        name: "ref"
+        keys: []
+        note: "mã gửi cổng, tiền tố RF"
+      - type: "string"
+        name: "attemptId"
+        keys:
+          - "FK"
+      - type: "string"
+        name: "paymentId"
+        keys:
+          - "FK"
+      - type: "number"
+        name: "amount"
+        keys: []
+      - type: "string"
+        name: "reason"
+        keys: []
+      - type: "string"
+        name: "status"
+        keys: []
+        note: "xem sơ đồ trạng thái hoàn tiền"
+      - type: "number"
+        name: "createdAt"
+        keys: []
+      - type: "number"
+        name: "nextCheckAt"
+        keys: []
+      - type: "string"
+        name: "lastError"
+        keys: []
+  - id: "anomaly"
+    label: "anomaly (cảnh báo tiền bất thường)"
+    store: "json"
+    columns:
+      - type: "string"
+        name: "id"
+        keys:
+          - "PK"
+        note: "an_N"
+      - type: "string"
+        name: "type"
+        keys: []
+        note: "unmatched_funds, underpaid..."
+      - type: "string"
+        name: "status"
+        keys: []
+        note: "open, refunding, applied..."
+      - type: "string"
+        name: "paymentId"
+        keys:
+          - "FK"
+        note: "có thể vắng"
+      - type: "string"
+        name: "attemptId"
+        keys:
+          - "FK"
+        note: "có thể vắng"
+      - type: "string"
+        name: "attemptRef"
+        keys: []
+        note: "chỉ ở unknown_attempt"
+      - type: "string"
+        name: "gateway"
+        keys: []
+      - type: "number"
+        name: "amount"
+        keys: []
+      - type: "string"
+        name: "gatewayTxnId"
+        keys: []
+      - type: "string"
+        name: "refundId"
+        keys: []
+        note: "khi vận hành chọn hoàn tiền"
+      - type: "string"
+        name: "note"
+        keys: []
+  - id: "webhook"
+    label: "webhook (bản giao sự kiện ra ngoài)"
+    store: "json"
+    columns:
+      - type: "string"
+        name: "id"
+        keys:
+          - "PK"
+        note: "eventId hoặc eventId~tuyến"
+      - type: "string"
+        name: "eventId"
+        keys: []
+        note: "sinh từ loại, đối tượng, phiên bản"
+      - type: "string"
+        name: "type"
+        keys: []
+        note: "payment.paid, refund.updated..."
+      - type: "string"
+        name: "objectId"
+        keys: []
+        note: "id payment, refund, anomaly hoặc commandId"
+      - type: "string"
+        name: "shopId"
+        keys: []
+      - type: "string"
+        name: "route"
+        keys: []
+        note: "tuyến gửi"
+      - type: "string"
+        name: "sink"
+        keys: []
+        note: "webhook hoặc Kafka"
+      - type: "string"
+        name: "status"
+        keys: []
+        note: "pending, delivered, dead"
+      - type: "number"
+        name: "attempts"
+        keys: []
+        note: "số lần đã gửi"
+      - type: "number"
+        name: "nextAt"
+        keys: []
+        note: "lúc gửi lại"
+      - type: "number"
+        name: "deliveredAt"
+        keys: []
+      - type: "string"
+        name: "lastError"
+        keys: []
+relations:
+  - from: "payment"
+    to: "attempt"
+    from_card: "one"
+    to_card: "many"
+    label: "paymentId"
+  - from: "attempt"
+    to: "refund"
+    from_card: "one"
+    to_card: "many"
+    label: "attemptId"
+  - from: "payment"
+    to: "refund"
+    from_card: "one"
+    to_card: "many"
+    label: "paymentId"
+  - from: "payment"
+    to: "anomaly"
+    from_card: "zero-or-one"
+    to_card: "many"
+    label: "paymentId"
+  - from: "attempt"
+    to: "anomaly"
+    from_card: "zero-or-one"
+    to_card: "many"
+    label: "attemptId"
+  - from: "payment"
+    to: "webhook"
+    from_card: "zero-or-one"
+    to_card: "many"
+    label: "objectId"

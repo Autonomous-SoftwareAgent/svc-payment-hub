@@ -1,0 +1,36 @@
+{
+  "port": 8080,
+  "host": "0.0.0.0",
+  "publicBaseUrl": "${HUB_PUBLIC_BASE_URL}",
+  "apiToken": ["${HUB_API_TOKEN}", "${HUB_API_TOKEN_PREVIOUS:-}"],
+  "metricsToken": "${HUB_METRICS_TOKEN:-}",
+  "shops": [],
+  "databaseUrl": "${HUB_DATABASE_URL}",
+  "schedulerSeconds": 30,
+  "limits": { "maxInFlight": 1000, "callbackReserve": 200, "ratePerSecond": 200, "burst": 400 },
+  "hub": {
+    "paymentTtlSeconds": 1800,
+    "failover": { "enabled": true, "maxAttempts": 3 },
+    "reconcile": {
+      "firstAfterSeconds": 60, "backoffSeconds": [60, 120, 300, 600, 1800], "maxAgeSeconds": 86400, "concurrency": 10,
+      "refundBackoffSeconds": [60, 300, 1800, 7200, 21600, 43200, 86400],
+      "perGateway": { "sepay": { "firstAfterSeconds": 30, "backoffSeconds": [30, 60, 300] } }
+    },
+    "refund": { "maxPerAttempt": 10, "maxAgeDays": 365 },
+    "protection": { "timeoutMs": 15000, "maxConcurrent": 100, "maxQueue": 400, "failureThreshold": 5, "openSeconds": 30, "perGateway": {} },
+    "webhooks": { "url": "${SHOP_WEBHOOK_URL:-}", "secret": "${SHOP_WEBHOOK_SECRET:-}" },
+    "hot": { "idleSeconds": 120, "evictEverySeconds": 10, "seenTtlDays": 90 },
+    "gateways": [
+      { "id": "vnpay", "priority": 1 },
+      { "id": "momo", "priority": 2 },
+      { "id": "onepay", "priority": 3, "enabled": false },
+      { "id": "sepay", "priority": 4, "enabled": false }
+    ]
+  },
+  "adapters": {
+    "vnpay": { "tmnCode": "${VNPAY_TMN_CODE}", "hashSecret": "${VNPAY_HASH_SECRET}", "baseUrl": "https://sandbox.vnpayment.vn" },
+    "momo": { "partnerCode": "${MOMO_PARTNER_CODE}", "accessKey": "${MOMO_ACCESS_KEY}", "secretKey": "${MOMO_SECRET_KEY}", "baseUrl": "https://test-payment.momo.vn" },
+    "onepay": { "merchant": "${ONEPAY_MERCHANT}", "accessCode": "${ONEPAY_ACCESS_CODE}", "hashKeyHex": "${ONEPAY_HASH_KEY_HEX}", "queryUser": "${ONEPAY_QUERY_USER}", "queryPassword": "${ONEPAY_QUERY_PASSWORD}", "baseUrl": "https://mtf.onepay.vn" },
+    "sepay": { "accountNumber": "${SEPAY_ACCOUNT_NUMBER}", "bankName": "${SEPAY_BANK_NAME}", "accountName": "${SEPAY_ACCOUNT_NAME}", "codePrefix": "DH", "authMode": "hmac", "hmacSecret": "${SEPAY_HMAC_SECRET}", "apiToken": "${SEPAY_API_TOKEN}" }
+  }
+}

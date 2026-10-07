@@ -1,0 +1,15 @@
+# Bí mật và dữ liệu cục bộ: không bao giờ đưa vào git
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.dump
+infra/prod/backups/
+
+# Cài đặt và trạng thái công cụ
+node_modules/
+
+# Tạm
+*.log
+tmp/

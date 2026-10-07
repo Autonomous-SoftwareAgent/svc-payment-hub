@@ -1,0 +1,14 @@
+# Không đưa vào build context: nguồn không cần, tài liệu, bí mật, rác cục bộ.
+.git
+.claude
+.env*
+*.pem
+*.key
+docs
+external
+infra
+test
+node_modules
+**/*.md
+Dockerfile
+.dockerignore

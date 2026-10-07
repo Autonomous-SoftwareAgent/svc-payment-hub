@@ -1,0 +1,38 @@
+id: "trang-thai-don"
+type: "state"
+title: "Đơn (payment)"
+tab: "architecture"
+sources:
+  - "src/hub.js"
+explain:
+  meaning: "Đơn (payment) là thứ cửa hàng nhìn thấy: nó chỉ có ba trạng thái. Đơn thành PAID khi có tiền được xác nhận cho nó, và chỉ đóng khi đã quá hạn và không còn lần thử nào có thể thu được tiền."
+  read:
+    - "Chấm đen là điểm bắt đầu; PAID và CLOSED là hai kết cục."
+    - "Nhãn trên mũi tên là điều kiện để chuyển."
+  details:
+    - term: "OPEN"
+      text: "Đơn đang chờ tiền; có thể có nhiều lần thử lần lượt."
+    - term: "PAID"
+      text: "Có một lần thử SUCCEEDED (đúng số tiền; với chuyển khoản là tổng nhận đủ hoặc thừa), hoặc người vận hành áp một khoản tiền về muộn đã được cổng xác nhận cho đơn còn OPEN."
+    - term: "CLOSED"
+      text: "Quá hạn và không còn lần thử nào ở trạng thái có thể nhận tiền. Việc xét đóng chạy khi một lần thử kết thúc hoặc ở vòng đối soát."
+  pitfalls:
+    - "Đơn không có trạng thái \"thất bại\": một lần thử thất bại không làm đơn thất bại."
+    - "Quá hạn chưa đủ để đóng đơn. Hub không tự cho một lần thử hết hạn theo đồng hồ của mình, nên đơn có lần thử còn chờ sẽ vẫn OPEN cho tới khi lần thử đó có kết quả."
+  basis: "748537493117bad6"
+states:
+  - id: "OPEN"
+  - id: "PAID"
+  - id: "CLOSED"
+start:
+  - "OPEN"
+end:
+  - "PAID"
+  - "CLOSED"
+transitions:
+  - from: "OPEN"
+    to: "PAID"
+    label: "có lần thử SUCCEEDED"
+  - from: "OPEN"
+    to: "CLOSED"
+    label: "quá hạn, không còn lần thử nào có thể nhận tiền"

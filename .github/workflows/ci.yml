@@ -1,0 +1,40 @@
+# CI của Payment Hub (S-023, S-028). Job test là của dịch vụ; job image là của repo deploy (đóng gói, quét bí mật, đẩy Docker Hub).
+# Test cần PostgreSQL thật (HUB_TEST_DATABASE_URL). Test cần Kafka thật tự bỏ qua khi không có broker (không dùng broker chung của hệ).
+# Mã commit của action là bản đã được workflow dùng chung ở repo deploy ghim (service-image.yml); ảnh PostgreSQL ghim bằng mã băm.
+# Khai báo trước, build sau (S-029): job image chỉ đóng gói khi commit đang chạy trùng commit đã ghim trong
+# services/payment-hub.json của repo deploy. Lỡ đẩy mã trước khi ghim: ghim xong thì chạy tay workflow này (workflow_dispatch).
+name: ci
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:17-alpine@sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec49117deedb300e552b24
+        env:
+          POSTGRES_PASSWORD: test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      HUB_TEST_DATABASE_URL: postgres://postgres:test@127.0.0.1:5432/postgres
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24'
+      - run: npm ci --ignore-scripts
+      - run: npm test
+  image:
+    needs: test
+    uses: Autonomous-SoftwareAgent/deploy/.github/workflows/service-image.yml@main
+    secrets: inherit

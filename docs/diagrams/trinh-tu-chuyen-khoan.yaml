@@ -1,0 +1,88 @@
+id: "trinh-tu-chuyen-khoan"
+type: "sequence"
+title: "Kiểu chuyển khoản (SePay)"
+tab: "business"
+sources:
+  - "src/hub.js"
+explain:
+  meaning: "Sơ đồ cho thấy ai gọi ai trong một lần thanh toán kiểu chuyển khoản: Hub trả cho cửa hàng số tài khoản và nội dung chuyển khoản, khách tự chuyển, và tiền được nhận ra nhờ mã nằm trong nội dung chuyển khoản."
+  read:
+    - "Thời gian chạy từ trên xuống; mỗi cột là một bên."
+    - "Mũi tên liền là lời gọi, mũi tên đứt là câu trả lời."
+    - "Chú ý chiều đi của tiền: khách tới ngân hàng, ngân hàng tới SePay, SePay báo cho Hub."
+  details:
+    - term: "Cửa hàng"
+      text: "Tạo thanh toán và hiển thị hướng dẫn chuyển khoản cho khách."
+    - term: "Hub"
+      text: "Trả số tài khoản, nội dung và mã QR; về sau khớp mã và cộng dồn các khoản nhận. Với SePay kiểu QR tĩnh, Hub không gọi cổng lúc tạo; với kiểu tài khoản ảo, Hub có gọi SePay để tạo tài khoản ảo (sơ đồ không vẽ lời gọi này)."
+    - term: "Ngân hàng"
+      text: "Nhận tiền của khách và báo biến động số dư cho SePay."
+    - term: "SePay"
+      text: "Gọi webhook về Hub cho mỗi khoản tiền vào. Webhook được xác thực bằng HMAC khi cấu hình chế độ đó; mặc định của adapter là không kiểm."
+    - term: "Khách"
+      text: "Tự chuyển khoản, nên có thể chuyển thiếu, thừa hoặc ghi sai nội dung."
+    - term: "khớp mã, cộng dồn, ghi PAID"
+      text: "Xem sơ đồ 4 về cách cộng dồn và sơ đồ 2 về trường hợp không khớp mã."
+  pitfalls:
+    - "Với QR tĩnh không có hạn cứng: lần thử chờ cho tới khi tiền về, Hub không tự kết thúc nó mà chỉ gắn cờ cho người vận hành khi nó tồn tại quá lâu."
+    - "Khách ghi sai nội dung thì tiền vẫn về tài khoản nhưng Hub không biết thuộc đơn nào; tiền được giữ kèm cảnh báo."
+    - "Chưa kiểm với SePay thật, kể cả cách ký webhook."
+  basis: "3913674f03b886c9"
+autonumber: false
+participants:
+  - id: "S"
+    label: "Cửa hàng"
+    actor: false
+  - id: "H"
+    label: "Hub"
+    actor: false
+  - id: "B"
+    label: "Ngân hàng"
+    actor: false
+  - id: "G"
+    label: "SePay"
+    actor: false
+  - id: "K"
+    label: "Khách"
+    actor: false
+steps:
+  - message:
+      from: "S"
+      to: "H"
+      text: "tạo thanh toán"
+      reply: false
+  - message:
+      from: "H"
+      to: "S"
+      text: "số tài khoản, nội dung, QR"
+      reply: true
+  - message:
+      from: "S"
+      to: "K"
+      text: "hiển thị hướng dẫn"
+      reply: false
+  - message:
+      from: "K"
+      to: "B"
+      text: "chuyển khoản"
+      reply: false
+  - message:
+      from: "B"
+      to: "G"
+      text: "biến động số dư"
+      reply: false
+  - message:
+      from: "G"
+      to: "H"
+      text: "webhook (ký HMAC)"
+      reply: false
+  - message:
+      from: "H"
+      to: "H"
+      text: "khớp mã, cộng dồn, ghi PAID"
+      reply: false
+  - note:
+      over:
+        - "H"
+        - "G"
+      text: "thiếu, thừa, sai nội dung đều được ghi lại"
