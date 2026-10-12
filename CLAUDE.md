@@ -15,6 +15,7 @@ Tệp này là phần riêng của dịch vụ **Payment Hub** (`BSN_/system_ser
 
 | Khi cần | Đọc |
 |---|---|
+| Nhận việc làm tiếp mà chưa biết gì: đang ở đâu, việc dở theo thứ tự, điều chưa kiểm, bẫy đã gặp | [docs/agent/ban-giao.md](docs/agent/ban-giao.md) (ghi 2026-10-12; đọc sau `STATUS.md`) |
 | Trước khi sửa bất cứ gì (bắt buộc) | [docs/agent/STATUS.md](docs/agent/STATUS.md): đang làm dở gì, lần gần nhất đổi gì, điều chưa kiểm. Nhật ký cũ đã chuyển sang `docs/agent/STATUS-archive.md` |
 | Trước khi viết mã: ba lớp nằm ở thư mục nào, quy ước, nợ chưa tách | [docs/agent/CONVENTIONS.md](docs/agent/CONVENTIONS.md) |
 | Định đổi một cách làm đã có, hay hỏi "vì sao chọn thế" | [docs/agent/DECISIONS.md](docs/agent/DECISIONS.md) |
