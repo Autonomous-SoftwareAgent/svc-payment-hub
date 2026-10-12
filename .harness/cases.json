@@ -1,0 +1,31 @@
+[
+  { "name": "ranh-gioi-import: lõi hub.js import adapter bị chặn", "event": { "kind": "before-action", "action": { "type": "write-file", "file": "src/hub.js", "text": "const { x } = require('./adapters/vnpay');\n" } }, "expect": "deny" },
+  { "name": "ranh-gioi-import: lõi hub.js import hợp đồng thì được", "event": { "kind": "before-action", "action": { "type": "write-file", "file": "src/hub.js", "text": "const { FAIL_CODES } = require('./contract');\nconst { Metrics } = require('./metrics');\n" } }, "expect": "pass" },
+  { "name": "ranh-gioi-import: adapter import adapter anh em bị chặn", "event": { "kind": "before-action", "action": { "type": "write-file", "file": "src/adapters/stripe/index.js", "text": "const other = require('../vnpay');\n" } }, "expect": "deny" },
+  { "name": "ranh-gioi-import: adapter import thư mục mình, fail-codes và contract thì được", "event": { "kind": "before-action", "action": { "type": "write-file", "file": "src/adapters/stripe/index.js", "text": "const a = require('./helpers');\nconst b = require('../fail-codes');\nconst c = require('../../contract');\n" } }, "expect": "pass" },
+  { "name": "ranh-gioi-import: contract.js import gì trong dự án cũng bị chặn", "event": { "kind": "before-action", "action": { "type": "write-file", "file": "src/contract.js", "text": "const r = require('./routing');\n" } }, "expect": "deny" },
+  { "name": "ranh-gioi-import: routing.js chỉ được import contract", "event": { "kind": "before-action", "action": { "type": "write-file", "file": "src/routing.js", "text": "const h = require('./hub');\n" } }, "expect": "deny" },
+  { "name": "ranh-gioi-import: main.js là điểm nối nên import adapter được", "event": { "kind": "before-action", "action": { "type": "write-file", "file": "src/main.js", "text": "const { discover } = require('./adapters/registry');\n" } }, "expect": "pass" },
+  { "name": "ranh-gioi-import: đoạn sửa không có require thì được", "event": { "kind": "before-action", "action": { "type": "write-file", "file": "src/hub.js", "text": "const total = a + b;\n" } }, "expect": "pass" },
+
+  { "name": "khong-viet-cung-ten-cong: hub.js rẽ nhánh theo tên cổng bị chặn", "event": { "kind": "before-action", "action": { "type": "write-file", "file": "src/hub.js", "text": "if (attempt.gateway === 'vnpay') return;\n" } }, "expect": "deny" },
+  { "name": "khong-viet-cung-ten-cong: server.js nhắc tên cổng bị chặn", "event": { "kind": "before-action", "action": { "type": "write-file", "file": "src/server.js", "text": "const route = '/ipn/stripe';\n" } }, "expect": "deny" },
+  { "name": "khong-viet-cung-ten-cong: tên cổng trong chú thích thì được", "event": { "kind": "before-action", "action": { "type": "write-file", "file": "src/hub.js", "text": "// ví dụ momo gửi IPN muộn\nconst a = 1;\n" } }, "expect": "pass" },
+  { "name": "khong-viet-cung-ten-cong: chính adapter được nhắc tên cổng của mình", "event": { "kind": "before-action", "action": { "type": "write-file", "file": "src/adapters/vnpay/index.js", "text": "const id = 'vnpay';\n" } }, "expect": "pass" },
+
+  { "name": "khong-du-lieu-the: trường số thẻ trong src bị chặn", "event": { "kind": "before-action", "action": { "type": "write-file", "file": "src/app/payments.js", "text": "const cardNumber = body.cardNumber;\n" } }, "expect": "deny" },
+  { "name": "khong-du-lieu-the: CVV trong adapter bị chặn", "event": { "kind": "before-action", "action": { "type": "write-file", "file": "src/adapters/stripe/index.js", "text": "const { cvv } = req.body;\n" } }, "expect": "deny" },
+  { "name": "khong-du-lieu-the: mã thường thì được", "event": { "kind": "before-action", "action": { "type": "write-file", "file": "src/hub.js", "text": "const amount = payment.amount;\n" } }, "expect": "pass" },
+  { "name": "khong-du-lieu-the: chỉ áp cho mã nguồn trong src (test thì được)", "event": { "kind": "before-action", "action": { "type": "write-file", "file": "test/hub/x.test.js", "text": "const cvv = '123';\n" } }, "expect": "pass" },
+
+  { "name": "khong-khoa-that: khóa live trong tài liệu bị chặn", "event": { "kind": "before-action", "action": { "type": "write-file", "file": "docs/agent/ghi-chu.md", "text": "khóa: s\u006b_live_abcdefgh12345678\n" } }, "expect": "deny" },
+  { "name": "khong-khoa-that: khóa riêng PEM bị chặn", "event": { "kind": "before-action", "action": { "type": "write-file", "file": "tools/sim/x.js", "text": "-----\u0042EGIN RSA PRIVATE KEY-----\nMIIEvQ\n" } }, "expect": "deny" },
+  { "name": "khong-khoa-that: khóa thử và tên biến môi trường thì được", "event": { "kind": "before-action", "action": { "type": "write-file", "file": "docs/agent/ghi-chu.md", "text": "dùng STRIPE_SECRET_KEY; test dùng sk_test_do_not_use_0000\n" } }, "expect": "pass" },
+
+  { "name": "khong-html: tạo tệp HTML bị chặn", "event": { "kind": "before-action", "action": { "type": "write-file", "file": "docs/overview.html", "text": "<html></html>" } }, "expect": "deny" },
+  { "name": "khong-html: tệp Markdown thì được", "event": { "kind": "before-action", "action": { "type": "write-file", "file": "docs/agent/ghi-chu.md", "text": "# ghi chú\n" } }, "expect": "pass" },
+
+  { "name": "test-vao-script: package.json có script test thiếu thư mục test bị chặn", "event": { "kind": "before-action", "action": { "type": "write-file", "file": "package.json", "text": "{\n  \"scripts\": { \"test\": \"node --test \\\"test/hub/*.test.js\\\"\" }\n}\n" } }, "expect": "deny" },
+  { "name": "test-vao-script: sửa package.json không đụng script test thì được", "event": { "kind": "before-action", "action": { "type": "write-file", "file": "package.json", "text": "{\n  \"name\": \"payment-hub\",\n  \"version\": \"0.0.0\"\n}\n" } }, "expect": "pass" },
+  { "name": "test-vao-script: thêm test vào thư mục đã có trong script thì được", "event": { "kind": "before-action", "action": { "type": "write-file", "file": "test/paypal/moi.test.js", "text": "'use strict';\n" } }, "expect": "pass" }
+]

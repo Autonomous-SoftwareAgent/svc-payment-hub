@@ -1,0 +1,15 @@
+{
+  "name": "payment-hub",
+  "api": "1.0",
+  "scope": "unit",
+  "description": "Luật chặn lúc ghi tệp của dịch vụ Payment Hub: ranh giới import ba lớp, không viết cứng tên cổng ở lõi, không dữ liệu thẻ, không khóa thật, không HTML, thư mục test phải có trong script npm test. Lớp nhắc sớm: luật chỉ thấy phần sắp ghi; test giữ ranh giới (test/hub/adapters-arch.test.js) vẫn là lưới chính. Quy tắc về lệnh shell và việc đọc tệp chưa viết được, để ở CLAUDE.md.",
+  "rules": [
+    "rules/ranh-gioi-import.js",
+    "rules/khong-viet-cung-ten-cong.js",
+    "rules/khong-du-lieu-the.js",
+    "rules/khong-khoa-that.js",
+    "rules/khong-html.js",
+    "rules/test-vao-script.js"
+  ],
+  "timeout": 2
+}

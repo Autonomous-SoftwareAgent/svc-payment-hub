@@ -1,6 +1,7 @@
 # Không đưa vào build context: nguồn không cần, tài liệu, bí mật, rác cục bộ.
 .git
 .claude
+.harness
 .env*
 *.pem
 *.key

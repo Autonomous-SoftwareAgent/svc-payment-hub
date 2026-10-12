@@ -7,7 +7,7 @@ Tệp này là phần riêng của dịch vụ **Payment Hub** (`BSN_/system_ser
 - Đầu phiên:
   1. Mở skill `services`, rồi đọc [docs/agent/STATUS.md](docs/agent/STATUS.md) (bắt buộc), [docs/agent/DECISIONS.md](docs/agent/DECISIONS.md) và [docs/agent/CONVENTIONS.md](docs/agent/CONVENTIONS.md). Các tài liệu còn lại đọc theo bảng "Đọc gì khi nào" ngay bên dưới.
   2. Liệt kê các tệp `BSN_/docs/handoff/*-to-payment-hub-*.md` còn `open` và báo người dùng.
-  3. Kiểm MCP `bsn-docs` đủ 21 công cụ (có `diagram_validate`, `diagram_save`, `diagram_explain`, `diagram_list`, `diagram_get`, `diagram_generate`, `diagram_review`, `context_explore`). Thiếu thì báo người dùng gõ `/mcp`.
+  3. Kiểm MCP `bsn-docs` đủ số công cụ mà tóm tắt đầu phiên nêu (có `diagram_validate`, `diagram_save`, `diagram_explain`, `diagram_list`, `diagram_get`, `diagram_generate`, `diagram_review`, `context_explore`). Thiếu thì báo người dùng gõ `/mcp`.
 - Duyệt kế hoạch trước khi sửa (gate, DECISIONS D-012; quy trình ở `../../CLAUDE.md`): nêu yêu cầu thì bạn trình kế hoạch và dừng; chỉ sửa tệp sau khi người dùng đồng ý ở lượt sau.
 
 ## Đọc gì khi nào
@@ -27,6 +27,7 @@ Tệp này là phần riêng của dịch vụ **Payment Hub** (`BSN_/system_ser
 | Cân nhắc đổi hướng lõi so với Hyperswitch (nguồn mở) | [docs/agent/hyperswitch-survey.md](docs/agent/hyperswitch-survey.md) |
 | Cân nhắc lấy ý từ các giải pháp lõi nguồn mở khác (ngôn ngữ chung của lõi) | [docs/agent/oss-core-solutions.md](docs/agent/oss-core-solutions.md) |
 | Cách ghi tài liệu, thứ tự đọc tài liệu cấp dự án | [docs/agent/README.md](docs/agent/README.md) và [docs/README.md](docs/README.md), cả hai trỏ về bảng này |
+| Quy tắc ở "Quy tắc riêng" nào đã thành luật máy chặn lúc ghi tệp (ranh giới import, tên cổng, dữ liệu thẻ, khóa thật, HTML, script test); thêm hay sửa luật | [.harness/](.harness/) (`module.json`, `rules/`, `cases.json`); thử: `node .claude/plugin/cli/cli.js extension test unit:payment-hub` từ `BSN_/`; luật chỉ chạy sau khi người dùng chạy `extension trust unit:payment-hub` (cách viết: `.claude/plugin/FORMAT.md`) |
 
 ## Việc gì thì dùng skill nào (skill ở `BSN_/.claude/skills/`)
 | Việc | Skill |
