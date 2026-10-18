@@ -37,8 +37,8 @@ Mọi test hiện tại chạy với simulator và adapter giả (`tools/sim/<c�
 - **Hai quy tắc chưa viết được** theo khung hiện tại và còn ở `CLAUDE.md`: không sửa tạm tệp nguồn rồi khôi phục bằng chuỗi lệnh `&&` (thử đột biến thì dùng công cụ tự khôi phục), và quy tắc về việc đọc tệp.
 - **Sửa luật:** sửa tệp trong `.harness/` rồi chạy lại ca thử (lệnh ở `CLAUDE.md`); sau khi sửa luật, người dùng phải xác nhận lại thì bản sửa mới có hiệu lực.
 
-## 5. Việc sắp tới từ phía harness (đừng tự sửa)
-Harness sẽ bỏ thư mục `.claude/plugin/` và chuyển sang `.claude/modules/` và `.claude/project/`. Hệ quả cho payment-hub: các lệnh `node .claude/plugin/...` trong `CLAUDE.md`, `README.md`, `docs/agent/` và đường dẫn bộ sinh trang riêng của payment-hub sẽ đổi. Đường mới chưa chốt; sẽ có tờ trong `BSN_/docs/handoff/`. Khi tờ đó đến, sửa một lượt cùng tờ đường dẫn bộ sinh ở mục 2.
+## 5. Đường dẫn lệnh harness (đã đổi xong 2026-10-17)
+Harness đã bỏ `.claude/plugin/`: lệnh nay ở `.claude/modules/core/cli/` (`cli.js`, `session.js`), hook của công cụ tài liệu ở `.claude/modules/servicedocs/hooks/`, bộ sinh trang riêng của payment-hub ở `.claude/project/generators/payment-hub/`. `CLAUDE.md`, `README.md`, `package.json` (script `docs`) và `docs/` đã đổi theo tờ `2026-10-13-harness-to-payment-hub-doi-duong-dan-lenh-harness.md`. Còn sót chuỗi cũ ở hai tệp tầng spec và impl của module `payment-hub` (do công cụ sở hữu, chỉ sửa qua `spec_fill` và `impl_link`) và ở nhật ký cũ; để nguyên cho tới đợt sửa tài liệu sau.
 
 ## 6. Bẫy đã gặp (đã tốn thời gian, đừng lặp lại)
 - **`npm test` chỉ chạy các thư mục liệt kê trong script `test` của `package.json`.** Thêm thư mục test mới mà quên liệt kê thì test không chạy (P-010 với Stripe; suýt lặp lại với PayPal). Luật `test-vao-script` chặn phần này.

@@ -1,13 +1,13 @@
 # Payment Hub
 
-Tệp này là phần riêng của dịch vụ **Payment Hub** (`BSN_/system_service/payment-hub/`). Quy tắc chung cho mọi dịch vụ và cách làm việc nằm ở `../../CLAUDE.md`. Harness (hook, skill, gate, MCP `bsn-docs`) chỉ có một chỗ ở `BSN_/.claude`, nên **mở phiên Claude Code ở `BSN_/`** rồi giao việc cho Payment Hub; mở thẳng trong thư mục này thì không có hook nào (D-013).
+Tệp này là phần riêng của dịch vụ **Payment Hub** (`BSN_/system_service/payment-hub/`). Quy tắc chung cho mọi dịch vụ và cách làm việc nằm ở `../../CLAUDE.md`. Harness (hook, skill, gate, MCP `harness*`) chỉ có một chỗ ở `BSN_/.claude`, nên **mở phiên Claude Code ở `BSN_/`** rồi giao việc cho Payment Hub; mở thẳng trong thư mục này thì không có hook nào (D-013).
 
 ## Phạm vi
-- Làm trong `system_service/payment-hub/`. Ngoài thư mục này chỉ đọc, trừ `BSN_/docs/handoff/` là nơi được ghi yêu cầu. Việc cần dịch vụ khác, hay cần sửa harness (kể cả bộ sinh trang của Payment Hub ở `BSN_/.claude/plugin/mcp/generators/payment-hub/`), thì ghi yêu cầu vào `BSN_/docs/handoff/` theo mẫu ở `BSN_/docs/handoff/README.md`. Ngoại lệ duy nhất: người dùng nói rõ trong phiên là cho phép sửa harness.
+- Làm trong `system_service/payment-hub/`. Ngoài thư mục này chỉ đọc, trừ `BSN_/docs/handoff/` là nơi được ghi yêu cầu. Việc cần dịch vụ khác, hay cần sửa harness (kể cả bộ sinh trang của Payment Hub ở `BSN_/.claude/project/generators/payment-hub/`), thì ghi yêu cầu vào `BSN_/docs/handoff/` theo mẫu ở `BSN_/docs/handoff/README.md`. Ngoại lệ duy nhất: người dùng nói rõ trong phiên là cho phép sửa harness.
 - Đầu phiên:
   1. Mở skill `services`, rồi đọc [docs/agent/STATUS.md](docs/agent/STATUS.md) (bắt buộc), [docs/agent/DECISIONS.md](docs/agent/DECISIONS.md) và [docs/agent/CONVENTIONS.md](docs/agent/CONVENTIONS.md). Các tài liệu còn lại đọc theo bảng "Đọc gì khi nào" ngay bên dưới.
   2. Liệt kê các tệp `BSN_/docs/handoff/*-to-payment-hub-*.md` còn `open` và báo người dùng.
-  3. Kiểm MCP `bsn-docs` đủ số công cụ mà tóm tắt đầu phiên nêu (có `diagram_validate`, `diagram_save`, `diagram_explain`, `diagram_list`, `diagram_get`, `diagram_generate`, `diagram_review`, `context_explore`). Thiếu thì báo người dùng gõ `/mcp`.
+  3. Kiểm các máy chủ MCP của harness (`harness`, `harness-docs`, `harness-diagrams`, `harness-context`, `harness-portal`) đủ công cụ mà tóm tắt đầu phiên nêu (có `diagram_validate`, `diagram_save`, `diagram_explain`, `diagram_list`, `diagram_get`, `diagram_generate`, `diagram_review`, `context_explore`). Thiếu, hoặc kết quả có dòng "CẢNH BÁO" kèm tên máy chủ, thì báo người dùng gõ `/mcp`.
 - Duyệt kế hoạch trước khi sửa (gate, DECISIONS D-012; quy trình ở `../../CLAUDE.md`): nêu yêu cầu thì bạn trình kế hoạch và dừng; chỉ sửa tệp sau khi người dùng đồng ý ở lượt sau.
 
 ## Đọc gì khi nào
@@ -28,7 +28,7 @@ Tệp này là phần riêng của dịch vụ **Payment Hub** (`BSN_/system_ser
 | Cân nhắc đổi hướng lõi so với Hyperswitch (nguồn mở) | [docs/agent/hyperswitch-survey.md](docs/agent/hyperswitch-survey.md) |
 | Cân nhắc lấy ý từ các giải pháp lõi nguồn mở khác (ngôn ngữ chung của lõi) | [docs/agent/oss-core-solutions.md](docs/agent/oss-core-solutions.md) |
 | Cách ghi tài liệu, thứ tự đọc tài liệu cấp dự án | [docs/agent/README.md](docs/agent/README.md) và [docs/README.md](docs/README.md), cả hai trỏ về bảng này |
-| Quy tắc ở "Quy tắc riêng" nào đã thành luật máy chặn lúc ghi tệp (ranh giới import, tên cổng, dữ liệu thẻ, khóa thật, HTML, script test); thêm hay sửa luật | [.harness/](.harness/) (`module.json`, `rules/`, `cases.json`); thử: `node .claude/plugin/cli/cli.js extension test unit:payment-hub` từ `BSN_/`; luật chỉ chạy sau khi người dùng chạy `extension trust unit:payment-hub` (cách viết: `.claude/plugin/FORMAT.md`) |
+| Quy tắc ở "Quy tắc riêng" nào đã thành luật máy chặn lúc ghi tệp (ranh giới import, tên cổng, dữ liệu thẻ, khóa thật, HTML, script test); thêm hay sửa luật | [.harness/](.harness/) (`module.json`, `rules/`, `cases.json`); thử: `node .claude/modules/core/cli/cli.js extension test unit:payment-hub` từ `BSN_/`; luật chỉ chạy sau khi người dùng chạy `extension trust unit:payment-hub` (cách viết: `.claude/modules/core/FORMAT.md`) |
 
 ## Việc gì thì dùng skill nào (skill ở `BSN_/.claude/skills/`)
 | Việc | Skill |
@@ -37,6 +37,8 @@ Tệp này là phần riêng của dịch vụ **Payment Hub** (`BSN_/system_ser
 | Ghi tài liệu ba tầng, `docs/service.yaml`, sổ vấn đề `P-nnn` | `service-docs` |
 | Thêm hay sửa một sơ đồ | `diagrams` |
 | Trang của Payment Hub trên cổng thiếu hay sai, cần thêm mục, cần publish lại | `service-page` |
+| Tìm hiểu một việc trước khi Grep; ghi từ vựng, quan hệ | `context` |
+| Trình kế hoạch trước khi sửa (khối `## Kế hoạch`, đủ năm mục) | `plan` |
 | Build, đẩy Docker Hub, deploy VM GCP, rollback | `cicd` |
 
 Đường dẫn trong skill `cicd` tính từ thư mục này. Nghiên cứu một cổng thanh toán không còn là skill: xem dòng tương ứng ở "Đọc gì khi nào".
@@ -50,7 +52,7 @@ Tệp này là phần riêng của dịch vụ **Payment Hub** (`BSN_/system_ser
 
 ## Tài liệu của dịch vụ (chi tiết ở skill `service-docs`, `diagrams`, `service-page`)
 - Trong repo này chỉ có Markdown và dữ liệu cho agent; không đặt HTML ở đây.
-- Tệp do công cụ sở hữu, chỉ ghi qua MCP `bsn-docs` với `service="payment-hub"` (hook `guard-owned` chặn ghi trực tiếp):
+- Tệp do công cụ sở hữu, chỉ ghi qua công cụ MCP của harness (`harness-docs`, `harness-diagrams`) với `service="payment-hub"` (hook `guard-owned` chặn ghi trực tiếp):
   - `docs/modules/*/{1-design,2-spec,3-impl}.md`: `design_record`, `design_update`, `spec_fill`, `impl_link`. Marker mã dạng `// spec: PHUB-S-nnn`.
   - `docs/service.yaml`: `service_doc_get`, `service_doc_set`, `problem_record`.
   - `docs/diagrams/*.yaml`: `diagram_list`, `diagram_get`, `diagram_validate`, `diagram_save`, `diagram_explain`, `diagram_generate`. **Không tự viết Mermaid ở bất cứ đâu.**
@@ -60,7 +62,7 @@ Tệp này là phần riêng của dịch vụ **Payment Hub** (`BSN_/system_ser
 - Mã nằm ở đâu để đọc trước khi ghi tài liệu: lõi và máy trạng thái `src/hub.js`; hoàn tiền, cảnh báo tiền, đối soát cũng ở `src/hub.js`; chọn cổng `src/routing.js`; hợp đồng `src/contract.js`; từng cổng `src/adapters/<cổng>/`; webhook và Kafka gửi ra cho cửa hàng `src/connectors/out/`, `src/events.js`; cổng vào `src/app/`, `src/connectors/in/`. Bản đồ đầy đủ: `docs/_generated/code-map.md`.
 
 ## Trang cho người đọc
-- Một trang ba tab: `BSN_/docs/portal/payment-hub/index.html`, do bộ sinh riêng `BSN_/.claude/plugin/mcp/generators/payment-hub/` dựng. Trang chỉ hiện bản ĐÃ COMMIT của repo này và tự dựng lại sau mỗi commit.
+- Một trang ba tab: `BSN_/docs/portal/payment-hub/index.html`, do bộ sinh riêng `BSN_/.claude/project/generators/payment-hub/` dựng. Trang chỉ hiện bản ĐÃ COMMIT của repo này và tự dựng lại sau mỗi commit.
 
 | Tab | Mục |
 |---|---|
@@ -74,10 +76,10 @@ Tệp này là phần riêng của dịch vụ **Payment Hub** (`BSN_/system_ser
 
 ## Lệnh thường dùng
 - `npm test` (cần PostgreSQL: `HUB_TEST_DATABASE_URL=...`; thiếu thì test cần DB bị bỏ qua, có nêu lý do). Kiểm cấu hình: `node src/main.js --check-config`.
-- `npm run docs` (= `node ../../.claude/plugin/mcp/cli.js check`): kiểm đồng bộ tài liệu và mã.
-- Chạy một mình: `docker compose up --build -d` (Hub + PostgreSQL + MoMo giả, cổng 8080). Chạy trong hệ BSN: từ `BSN_/` `node infra/bsn.js up --apply` (cổng 8000, broker 127.0.0.1:19192; demo: `HUB_URL=http://127.0.0.1:8000 SIM_URL=http://127.0.0.1:8100 KAFKA_BROKER=127.0.0.1:19192 node infra/local/demo.js`). Lên bản mới trong hệ (S-017, S-023): commit, chạy test, rồi từ `BSN_/` `node infra/bsn.js pin payment-hub --apply` rồi commit tờ `infra/services/payment-hub.json` bằng `git -C infra` (repo deploy `Autonomous-SoftwareAgent/deploy`, S-028; đẩy chỉ khi người dùng bảo); phiên payment-hub chỉ ghi đúng tờ của mình, không sửa phần còn lại của `infra/`.
+- `npm run docs` (= `node ../../.claude/modules/core/cli/cli.js check`): kiểm đồng bộ tài liệu và mã.
+- Chạy một mình: `docker compose up --build -d` (Hub + PostgreSQL + MoMo giả, cổng 8080). Chạy trong hệ BSN: từ `BSN_/` `node infra/bsn.js up --apply` (cổng 8000, broker 127.0.0.1:19192; demo: `HUB_URL=http://127.0.0.1:8000 SIM_URL=http://127.0.0.1:8100 KAFKA_BROKER=127.0.0.1:19192 node infra/local/demo.js`). Lên bản mới trong hệ (S-017, S-029, S-059): commit và chạy test, đẩy `main` (chỉ khi người dùng bảo), rồi gắn nhãn `release/payment-hub` lên commit đã nằm trên `main` trong repo này và đẩy nhãn; chỉ commit có nhãn mới được đóng gói, lần đẩy khác chỉ chạy test (skill `cicd`). Không ghim vào repo deploy (`pin` là cách cũ); chạy bản nào ở đâu do người vận hành chọn bằng `node infra/bsn.js console` hoặc `node infra/bsn.js deploy|rollback payment-hub [commit] --apply`. Phiên payment-hub chỉ ghi đúng tờ `infra/services/payment-hub.json` của mình.
 - Triển khai: `scripts/deploy.ps1` build từ một commit chỉ định (mặc định commit ghim ở `BSN_/infra/services/payment-hub.json`), nhãn ảnh là mã commit, không đọc thư mục làm việc (mặc định chỉ in kế hoạch).
 - Chạy từ `BSN_/`:
-  - `node .claude/plugin/mcp/cli.js --service payment-hub code`: làm mới `docs/_generated/code-map.md`.
-  - `node .claude/plugin/mcp/cli.js --service payment-hub overview --run-tests`: sinh lại nội dung trang (kèm số test thật) và dựng lại cổng.
-  - `node .claude/plugin/mcp/cli.js diagrams-check`: mở trang bằng trình duyệt không giao diện, kiểm mọi sơ đồ vẽ được.
+  - `node .claude/modules/core/cli/cli.js --service payment-hub code`: làm mới `docs/_generated/code-map.md`.
+  - `node .claude/modules/core/cli/cli.js --service payment-hub overview --run-tests`: sinh lại nội dung trang (kèm số test thật) và dựng lại cổng.
+  - `node .claude/modules/core/cli/cli.js diagrams-check`: mở trang bằng trình duyệt không giao diện, kiểm mọi sơ đồ vẽ được.

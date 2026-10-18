@@ -39,7 +39,7 @@ Không đặt biến thì các test cần DB bị bỏ qua (có nêu lý do). Te
 | `infra/local/` | Cấu hình và kịch bản kiểm nhanh cho `docker-compose.yml` ở gốc (chạy thử local) |
 | `infra/prod/` | Compose production: Caddy TLS, sao lưu và khôi phục PostgreSQL |
 | `scripts/deploy.ps1` | Build image từ MỘT commit chỉ định (mặc định commit được ghim ở `BSN_/infra/services/payment-hub.json`; nhãn ảnh là 12 ký tự đầu của commit; không đọc thư mục làm việc), (tùy chọn) đẩy Docker Hub và triển khai lên VM; mặc định chỉ in kế hoạch |
-| (ngoài repo) `BSN_/.claude`, `BSN_/.claude/plugin/mcp` | Harness và công cụ tài liệu dùng chung cho mọi dịch vụ (hook, skill, gate, MCP `bsn-docs`, bộ sinh của dịch vụ này ở `BSN_/.claude/plugin/mcp/generators/payment-hub/`). Repo này không còn `.claude/`, `.mcp.json` hay `tools/docs/` |
+| (ngoài repo) `BSN_/.claude`, `BSN_/.claude/modules/servicedocs` | Harness và công cụ tài liệu dùng chung cho mọi dịch vụ (hook, skill, gate, MCP `bsn-docs`, bộ sinh của dịch vụ này ở `BSN_/.claude/project/generators/payment-hub/`). Repo này không còn `.claude/`, `.mcp.json` hay `tools/docs/` |
 
 ## Làm việc với agent
 Mở phiên Claude Code ở thư mục cha `BSN_/` (không mở ở thư mục này) rồi giao việc cho Payment Hub: hook kiểm tài liệu, gate duyệt kế hoạch và MCP `bsn-docs` chỉ có ở `BSN_/.claude`, mở thẳng ở đây thì không hook nào chạy (quy tắc: [CLAUDE.md](CLAUDE.md), D-013). Bản cho người đọc: cổng HTML cục bộ `BSN_/docs/portal/payment-hub/index.html`. Đọc theo thứ tự: [docs/agent/STATUS.md](docs/agent/STATUS.md), [docs/agent/DECISIONS.md](docs/agent/DECISIONS.md), [docs/agent/CONVENTIONS.md](docs/agent/CONVENTIONS.md). Kiểm tài liệu: `npm run docs`.

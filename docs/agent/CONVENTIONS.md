@@ -42,7 +42,7 @@ Ba lớp: vào/ra (I/O với bên ngoài), chuẩn hóa (dịch giữa dạng b�
 - **Chỗ chưa tách đúng ba lớp (nợ đã biết):** phía cổng, lớp vào/ra và lớp chuẩn hóa nằm chung trong `index.js` của từng adapter (SePay chia theo sản phẩm). Chúng chỉ tách bằng cách tiêm `deps.fetch`, không tách thành tệp riêng, và chưa có test quét import giữ ranh giới vào/ra với chuẩn hóa bên trong adapter. `src/server.js` vừa nhận HTTP vừa gắn route cổng và route app, chưa tách hẳn.
 
 ## Cấu trúc thư mục
-- `src/` mã Hub theo bảng trên; `src/adapters/<cổng>/` mỗi cổng một thư mục; `test/` (lõi `test/hub`, từng cổng `test/<cổng>`, `test/e2e`); `tools/sim/<cổng>` simulator; `docs/` tài liệu theo module (công cụ tài liệu nằm ở `BSN_/.claude/plugin/mcp`, ngoài repo này); `infra/` compose và production.
+- `src/` mã Hub theo bảng trên; `src/adapters/<cổng>/` mỗi cổng một thư mục; `test/` (lõi `test/hub`, từng cổng `test/<cổng>`, `test/e2e`); `tools/sim/<cổng>` simulator; `docs/` tài liệu theo module (công cụ tài liệu nằm ở `BSN_/.claude/modules/servicedocs`, ngoài repo này); `infra/` compose và production.
 
 ## Thứ tự điền các tầng docs
 - Design chốt trước. Khung spec/impl tự sinh, để trống (status todo).

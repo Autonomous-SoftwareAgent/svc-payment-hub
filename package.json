@@ -14,6 +14,6 @@
     "test": "node --test --test-timeout=60000 \"test/hub/*.test.js\" \"test/e2e/*.test.js\" \"test/momo/*.test.js\" \"test/onepay/*.test.js\" \"test/vnpay/*.test.js\" \"test/sepay/*.test.js\" \"test/stripe/*.test.js\" \"test/paypal/*.test.js\"",
     "start": "node src/main.js",
     "check-config": "node src/main.js --check-config",
-    "docs": "node ../../.claude/plugin/mcp/cli.js check"
+    "docs": "node ../../.claude/modules/core/cli/cli.js check"
   }
 }

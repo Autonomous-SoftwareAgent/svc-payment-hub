@@ -18,19 +18,19 @@ Thư mục này chứa: `STATUS.md` (đang làm gì, nhật ký), `STATUS-archiv
 
 ## Hooks cưỡng chế (ở gốc: `BSN_/.claude/settings.json`, repo này không có hook riêng)
 Phiên phải mở ở `BSN_/` thì hook mới chạy (D-013).
-- `PostToolUse` (Write|Edit|NotebookEdit) chạy `BSN_/.claude/plugin/hooks/forward.js track` (gọi `docs-track.js`): ghi lại file code đã sửa trong phiên. Sửa trong `docs/`, và `CLAUDE.md`, `README.md` ở gốc repo, không tính là code.
+- `PostToolUse` (Write|Edit|NotebookEdit) chạy `BSN_/.claude/modules/core/hooks/forward.js track` (gọi `docs-track.js`): ghi lại file code đã sửa trong phiên. Sửa trong `docs/`, và `CLAUDE.md`, `README.md` ở gốc repo, không tính là code.
 - `Stop` chạy `forward.js stop` (gọi `docs-stop.js`), chặn kết thúc khi:
   - có sửa code mà [STATUS.md](STATUS.md) chưa được cập nhật sau lần sửa code cuối;
-  - `node ../../.claude/plugin/mcp/cli.js check` báo lỗi (STALE, thiếu, code path không tồn tại, marker mồ côi, `service.yaml` sai lược đồ).
+  - `node ../../.claude/modules/core/cli/cli.js check` báo lỗi (STALE, thiếu, code path không tồn tại, marker mồ côi, `service.yaml` sai lược đồ).
   Chỉ nhắc một lần mỗi lượt để không lặp vô hạn. Sau đó hook làm mới `code-map.md`, trang chi tiết kỹ thuật, và dựng lại cổng `BSN_/docs/portal` nếu docs đổi.
 - `PreToolUse`: `guard-owned.js` chặn ghi trực tiếp ba tầng, `_generated/` và `service.yaml`; gate duyệt kế hoạch chặn sửa tệp khi người dùng chưa duyệt.
 - Trạng thái hook nằm ở `BSN_/.claude/.state/` (không commit).
 
 ## Tài liệu sinh từ code
 Hai bộ này lấy sự thật từ CODE (nạp module thật, quét mã nguồn), không viết tay, nên không lệch với code:
-- **Cho agent**: [../_generated/code-map.md](../_generated/code-map.md): file và spec mà file đánh dấu, phương thức Hub, trạng thái, loại anomaly, mã lỗi, route HTTP, cờ năng lực của từng adapter, số test, tình trạng tài liệu từng module. Sinh bằng `node ../../.claude/plugin/mcp/cli.js code`; hook `Stop` chạy lệnh này mỗi lần, nên luôn mới. Chạy lệnh này trước khi đọc code nếu cần bản đồ nhanh. Trích xuất nằm ở `BSN_/.claude/plugin/mcp/generators/payment-hub/code-facts.js` (route lấy bằng regex từ `server.js`: thêm route kiểu khác thì cập nhật file đó).
+- **Cho agent**: [../_generated/code-map.md](../_generated/code-map.md): file và spec mà file đánh dấu, phương thức Hub, trạng thái, loại anomaly, mã lỗi, route HTTP, cờ năng lực của từng adapter, số test, tình trạng tài liệu từng module. Sinh bằng `node ../../.claude/modules/core/cli/cli.js code`; hook `Stop` chạy lệnh này mỗi lần, nên luôn mới. Chạy lệnh này trước khi đọc code nếu cần bản đồ nhanh. Trích xuất nằm ở `BSN_/.claude/project/generators/payment-hub/code-facts.js` (route lấy bằng regex từ `server.js`: thêm route kiểu khác thì cập nhật file đó).
 - **Cho agent, tổng quan dịch vụ**: [../_generated/overview.md](../_generated/overview.md), sinh từ [../service.yaml](../service.yaml) (nghiệp vụ, kiến trúc, sổ vấn đề `P-nnn`, tiến độ). Sửa nguồn bằng `bsn-docs`: `service_doc_set`, `problem_record`.
-- **Cho người đọc**: trang ba tab `BSN_/docs/portal/payment-hub/index.html` (ngoài repo này). Nội dung các mục sinh bằng `node .claude/plugin/mcp/cli.js --service payment-hub overview --run-tests` chạy từ `BSN_/` (chạy bộ test để lấy số test thật); sơ đồ lấy từ `docs/diagrams/` đã commit; sổ vấn đề từ `service.yaml` đã commit. Trang tự dựng lại sau mỗi commit của repo này. Mục nào thuộc tab nào: `CLAUDE.md` của dịch vụ và skill `service-page`.
+- **Cho người đọc**: trang ba tab `BSN_/docs/portal/payment-hub/index.html` (ngoài repo này). Nội dung các mục sinh bằng `node .claude/modules/core/cli/cli.js --service payment-hub overview --run-tests` chạy từ `BSN_/` (chạy bộ test để lấy số test thật); sơ đồ lấy từ `docs/diagrams/` đã commit; sổ vấn đề từ `service.yaml` đã commit. Trang tự dựng lại sau mỗi commit của repo này. Mục nào thuộc tab nào: `CLAUDE.md` của dịch vụ và skill `service-page`.
 - Hai bộ này chỉ đọc code và docs, không ghi vào design/spec/impl; thay đổi nội dung thì sửa ở nguồn rồi sinh lại.
 
 ## Quy tắc cập nhật tài liệu cấp dự án
